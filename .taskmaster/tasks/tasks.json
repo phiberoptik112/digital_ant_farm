@@ -1,0 +1,1145 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Setup Project Repository and Environment",
+        "description": "Initialize the project repository with Python 3.8+ and Pygame, set up the development environment, and create the basic project structure.",
+        "details": "1. Create a new Git repository\n2. Set up virtual environment with Python 3.8+\n3. Install required dependencies: Pygame, NumPy\n4. Create basic project structure:\n   - main.py (entry point)\n   - /engine (simulation core)\n   - /entities (ant and colony classes)\n   - /ui (user interface components)\n   - /utils (helper functions)\n5. Create a basic README.md with project overview\n6. Set up .gitignore for Python projects\n7. Implement a simple window initialization to verify Pygame works",
+        "testStrategy": "Verify that the application window opens without errors and that all dependencies can be imported successfully. Run a basic test script that initializes Pygame and displays a window.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Initialize Git Repository with Structure",
+            "description": "Create a new Git repository with proper directory structure for the game project",
+            "dependencies": [],
+            "details": "1. Create a new Git repository\n2. Set up the following directory structure:\n   - src/ (for game source code)\n   - assets/ (for images, sounds, etc.)\n   - docs/ (for documentation)\n   - tests/ (for unit tests)\n3. Add a README.md with project description\n4. Create a .gitignore file for Python and Pygame projects\n5. Make initial commit",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Configure Python Environment",
+            "description": "Set up Python virtual environment and dependency management",
+            "dependencies": [
+              1
+            ],
+            "details": "1. Create a virtual environment using venv or conda\n2. Create requirements.txt with necessary dependencies (pygame, etc.)\n3. Install dependencies\n4. Create setup.py or pyproject.toml for package configuration\n5. Document environment setup instructions in README.md",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Initialize Basic Pygame Setup",
+            "description": "Create a minimal Pygame application to verify the environment works correctly",
+            "dependencies": [
+              2
+            ],
+            "details": "1. Create a main.py file in the src directory\n2. Implement basic Pygame initialization code\n3. Add a simple game loop that displays a window\n4. Include basic event handling (quit on ESC or window close)\n5. Test the setup on different developer machines\n6. Document how to run the test application",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Implement Ant Entity System",
+        "description": "Create the core Ant class with position, state, and basic behavior properties as specified in the MVP requirements.",
+        "details": "1. Create an Ant class with the following attributes:\n   - position (x, y coordinates)\n   - direction (angle or vector)\n   - state (foraging, returning, idle)\n   - speed\n   - food carrying status\n   - pheromone deposit strength\n   - detection radius\n\n2. Implement basic methods:\n   - move(): Update position based on current direction and speed\n   - detect_food(): Check if food is within detection radius\n   - deposit_pheromone(): Leave pheromone trail\n   - follow_pheromone(): Adjust direction based on nearby pheromones\n   - pick_up_food(): Change state when food is found\n   - return_to_colony(): Navigate back to colony\n\n3. Implement random walk behavior with configurable randomness factor",
+        "testStrategy": "Create unit tests for the Ant class to verify:\n1. Movement mechanics work correctly\n2. State transitions occur properly\n3. Pheromone deposition functions as expected\n4. Food detection works within the specified radius\n5. Visual representation renders correctly",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement Core Ant Properties and State Management",
+            "description": "Create the fundamental Ant entity with essential properties and state management capabilities",
+            "dependencies": [],
+            "details": "Design and implement the Ant entity class with properties including position, orientation, energy level, and carrying status. Implement state management to track ant modes (searching, returning, following trail). Create interfaces for state transitions and ensure proper encapsulation of ant properties. Document the API for other components to interact with ants.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Develop Basic Movement Mechanics",
+            "description": "Implement movement algorithms for ants including random walks and directed movement",
+            "dependencies": [
+              1
+            ],
+            "details": "Create movement systems that handle ant velocity, acceleration, and turning. Implement random walk algorithm for food searching behavior. Add collision detection with environment boundaries and obstacles. Ensure movement speed is configurable and performance-optimized for many entities. Include helper methods for changing direction and calculating new positions.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Implement Food Detection and Interaction",
+            "description": "Create systems for ants to detect, pick up, carry, and deposit food resources",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Implement food detection within a configurable radius around each ant. Create logic for picking up food and transitioning to return-to-nest state. Add carrying mechanics that may affect movement speed. Implement food deposition behavior at the nest. Design efficient spatial queries for food detection that scale with many entities.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Develop Pheromone Interaction System",
+            "description": "Create systems for ants to deposit, detect, and follow pheromone trails",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Implement pheromone deposition mechanics with different types (food trail, nest trail). Create pheromone detection and following behavior with configurable sensing radius. Add pheromone strength decay over time. Design efficient spatial indexing for pheromone queries. Implement trail-following algorithms with randomness factors for natural-looking behavior.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Create Testing Framework for Ant Behaviors",
+            "description": "Develop a comprehensive testing system to validate ant behaviors and interactions",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "details": "Create unit tests for individual ant behaviors (movement, food handling, pheromone following). Implement integration tests for complex behavior chains. Design performance tests to ensure system scales with many entities. Add visualization tools for debugging ant behavior. Create test scenarios that validate emergent colony behaviors like efficient foraging paths.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Develop Colony Management System",
+        "description": "Implement the central colony system that manages ant spawning, tracks colony statistics, and serves as the central point for the simulation.",
+        "details": "1. Create a Colony class with the following attributes:\n   - position (central location)\n   - population count\n   - food storage amount\n   - spawn rate\n   - efficiency metrics (food collected per ant, etc.)\n\n2. Implement methods:\n   - spawn_ant(): Create new ant at colony position\n   - receive_food(): Process food brought back by ants\n   - update_statistics(): Track and calculate colony performance\n   - get_colony_state(): Return current colony metrics\n\n3. Implement a simple spawn timer based on the configurable spawn rate\n\n4. Create visual representation of the colony nest",
+        "testStrategy": "Test the Colony class by:\n1. Verifying ants spawn at the correct rate and position\n2. Confirming food collection is properly tracked\n3. Validating statistics calculations\n4. Checking that the colony visual representation renders correctly\n5. Testing the interaction between returning ants and the colony",
+        "priority": "high",
+        "dependencies": [
+          1,
+          2
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement Core Colony Structure",
+            "description": "Design and implement the fundamental colony structure with properties for location, size, health, and development stages.",
+            "dependencies": [],
+            "details": "Create a Colony class with properties for position, radius, health points, development level, and maximum population capacity. Implement methods for colony growth, damage handling, and lifecycle management. Include visualization components for the physical nest structure and surrounding territory.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Develop Ant Spawning System",
+            "description": "Create mechanics for spawning different types of ants and managing the colony population.",
+            "dependencies": [
+              1
+            ],
+            "details": "Implement ant spawning logic with cooldown timers, resource costs, and type distribution. Create population management functions to track current population, enforce limits based on colony development, and handle ant lifecycle events. Include methods for spawning specialized ant types (workers, soldiers, queens) based on colony needs.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Implement Resource Management System",
+            "description": "Create systems for food collection, storage, and consumption within the colony.",
+            "dependencies": [
+              1
+            ],
+            "details": "Develop resource storage mechanisms with appropriate limits based on colony size. Implement food consumption rates tied to population size and activity. Create resource allocation priorities for spawning, colony growth, and maintenance. Include methods for ants to deposit collected resources and for the colony to distribute them.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Create Colony Statistics and Reporting",
+            "description": "Implement systems to track, analyze and report colony performance metrics.",
+            "dependencies": [
+              1,
+              2,
+              3
+            ],
+            "details": "Design a statistics tracking system for metrics like population size, resource collection rates, ant lifespans, and territory control. Create visualization methods for displaying colony health, resource levels, and population distribution. Implement historical data tracking to show colony development over time. Add event logging for significant colony events.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Create Food Source Generation System",
+        "description": "Implement the system for randomly generating food sources with varying concentrations across the simulation environment.",
+        "details": "1. Create a FoodSource class with:\n   - position\n   - amount/concentration\n   - depletion rate\n   - visual size based on amount\n\n2. Implement a FoodManager class to:\n   - Generate random food sources across the map\n   - Track all active food sources\n   - Handle food depletion when collected by ants\n   - Optionally regenerate food based on simulation settings\n\n3. Create methods for:\n   - add_food_source(position, amount): Add new food source\n   - remove_food_source(id): Remove depleted sources\n   - get_nearest_food(position): Find closest food to a position\n   - update(): Update all food sources (handle depletion)\n\n4. Implement visual representation with size proportional to amount",
+        "testStrategy": "Test the food generation system by:\n1. Verifying random distribution of food sources\n2. Confirming food depletion works correctly when ants collect\n3. Testing the nearest food finder algorithm\n4. Validating visual representation updates with depletion\n5. Checking edge cases (no food, maximum food)",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Food Source Entity Implementation",
+            "description": "Create a food source entity with properties and visual representation",
+            "dependencies": [],
+            "details": "Implement a Food class that includes properties such as position, amount of food remaining, maximum capacity, and a visual representation that changes based on depletion level. The visual representation should clearly indicate to users how much food remains at the source. Include methods for accessing and modifying food amount.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Food Manager System",
+            "description": "Develop a system to generate and track food sources in the environment",
+            "dependencies": [
+              1
+            ],
+            "details": "Create a FoodManager class responsible for generating food sources with appropriate spatial distribution, maintaining a collection of all active food sources, and providing methods to add, remove, and query food sources. Implement algorithms for random or pattern-based food source placement that ensures proper spacing and prevents overlapping.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Food Depletion and Regeneration Mechanics",
+            "description": "Implement mechanics for food source depletion and regeneration",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Add functionality to handle food depletion when ants collect food, including visual updates to reflect remaining amounts. Implement regeneration mechanics with options for: timed regeneration of existing sources, complete disappearance of depleted sources, and spawning of new sources to replace depleted ones. Include configuration parameters to adjust regeneration rates and conditions.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Implement Basic Pheromone System",
+        "description": "Create the pheromone trail system that allows ants to mark and follow paths to food sources, with decay over time.",
+        "details": "1. Create a Pheromone class with:\n   - position\n   - strength/intensity\n   - type (food trail for MVP)\n   - decay rate\n   - creation time\n\n2. Implement a PheromoneManager to:\n   - Track all active pheromones in a grid-based system for efficiency\n   - Update pheromone strength (decay over time)\n   - Remove fully decayed pheromones\n   - Provide methods to query pheromone strength at positions\n   - Handle pheromone reinforcement when multiple ants mark the same path\n\n3. Implement methods:\n   - add_pheromone(position, strength, type)\n   - get_pheromone_direction(position, radius): Calculate gradient direction\n   - update(): Decay all pheromones and remove depleted ones\n\n4. Use NumPy arrays for efficient pheromone grid management\n\n5. Implement visual representation with color intensity based on strength",
+        "testStrategy": "Test the pheromone system by:\n1. Verifying pheromone deposition works correctly\n2. Confirming decay happens at the expected rate\n3. Testing pheromone direction calculation\n4. Validating that ants can successfully follow pheromone trails\n5. Checking performance with large numbers of pheromones\n6. Verifying visual representation matches pheromone strength",
+        "priority": "high",
+        "dependencies": [
+          1,
+          2
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design Pheromone Data Structure",
+            "description": "Create the core pheromone data structure with properties for intensity, type, position, and age.",
+            "dependencies": [],
+            "details": "Implement a Pheromone class with properties: position (Vector2), intensity (float), type (enum: FOOD, HOME, DANGER), age (float), and radius of influence. Include methods for updating intensity and checking if the pheromone should be removed based on minimum threshold values. Consider memory optimization since there will be thousands of instances.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Implement Grid-based Pheromone Storage System",
+            "description": "Develop an efficient spatial partitioning system to store and query pheromones.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create a PheromoneGrid class that divides the world into cells. Each cell contains references to pheromones in that area. Implement methods for adding, removing, and querying pheromones by location and type. Use spatial hashing for O(1) lookup times. Include optimization for bulk operations when multiple pheromones are updated simultaneously.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Create Pheromone Decay and Removal System",
+            "description": "Implement time-based decay mechanics and garbage collection for expired pheromones.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Add a decay rate property to pheromones. Implement a system that reduces intensity over time using deltaTime. Create an efficient removal system that cleans up pheromones that fall below the minimum intensity threshold. Consider using object pooling to reduce garbage collection overhead. Implement optional diffusion mechanics where pheromones spread to neighboring cells at reduced intensity.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Develop Pheromone Gradient Calculation",
+            "description": "Create algorithms to calculate pheromone gradients for ant pathfinding.",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "Implement methods to calculate the gradient direction at any point by sampling nearby pheromones. Create weighted sampling functions that consider pheromone intensity, distance, and type. Optimize the gradient calculation to avoid expensive operations during ant movement. Include configurable parameters for gradient sensitivity and sampling radius.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Implement Visual Representation System",
+            "description": "Create a rendering system to visualize pheromone trails with appropriate colors and intensities.",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "Develop a PheromoneRenderer that visualizes pheromones as colored particles or trails. Map pheromone types to different colors (e.g., food=green, home=blue). Scale visual intensity based on pheromone strength. Implement options for different visualization modes (points, heatmap, etc.). Optimize rendering using instancing or texture-based approaches to handle thousands of pheromones efficiently.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Develop Movement Mechanics and Pathfinding",
+        "description": "Implement the movement system for ants, including random walk behavior and pheromone-influenced pathfinding.",
+        "details": "1. Enhance the Ant class with advanced movement mechanics:\n   - Implement configurable random walk algorithm\n   - Create weighted direction selection based on pheromones\n   - Add obstacle avoidance\n   - Implement different movement patterns for different ant states\n\n2. Create pathfinding components:\n   - Pheromone gradient following\n   - Direct path calculation to colony when returning\n   - Food source targeting when food is detected\n   - Random exploration with configurable randomness\n\n3. Implement movement speed variations based on parameters\n\n4. Add methods to adjust movement based on simulation parameters:\n   - set_movement_randomness(value)\n   - set_pheromone_sensitivity(value)\n   - set_speed(value)",
+        "testStrategy": "Test the movement system by:\n1. Verifying random walk produces expected distribution patterns\n2. Confirming ants successfully follow pheromone gradients\n3. Testing that ants return directly to colony when carrying food\n4. Validating parameter changes affect movement as expected\n5. Measuring performance with many ants moving simultaneously\n6. Visual inspection of movement patterns",
+        "priority": "high",
+        "dependencies": [
+          2,
+          5
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Random Walk Algorithm Implementation",
+            "description": "Develop a random walk algorithm that allows ants to explore the environment when not following pheromones or targeting specific locations.",
+            "dependencies": [],
+            "details": "Implement a weighted random direction selection system that favors forward movement but allows for turning. Include collision detection with environment boundaries and obstacles. Ensure the algorithm has configurable parameters for step size and turn probability. Test with multiple entities to verify performance at scale.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Pheromone-Guided Movement System",
+            "description": "Create a movement system that allows ants to detect and follow pheromone trails with varying intensities.",
+            "dependencies": [
+              1
+            ],
+            "details": "Implement pheromone sensing in a radius around each ant. Develop a weighted decision system that balances pheromone following with random exploration. Include different behaviors for different pheromone types (food vs. home). Create visualization tools to debug pheromone following behavior. Optimize for performance with many entities following trails simultaneously.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Target-Directed Movement Implementation",
+            "description": "Develop a system for ants to move directly toward specific targets like food sources or the colony when they are within detection range.",
+            "dependencies": [
+              1
+            ],
+            "details": "Implement a target detection system with configurable detection radius. Create a pathfinding algorithm that can navigate around obstacles to reach targets. Balance direct movement with obstacle avoidance. Ensure smooth transitions between random walking, pheromone following, and target-directed movement. Test with various obstacle configurations.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Movement Parameter System",
+            "description": "Create a flexible parameter system that allows for adjustable movement behaviors across different ant types or states.",
+            "dependencies": [
+              1,
+              2,
+              3
+            ],
+            "details": "Design a parameter structure that controls movement speed, turn rate, pheromone sensitivity, and target detection range. Implement state-based parameter adjustments (e.g., carrying food vs. searching). Create an interface for runtime adjustment of parameters. Develop presets for different ant behaviors (scouts, workers, etc.). Test performance impact of parameter adjustments at scale.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Create Parameter Panel UI",
+        "description": "Develop the user interface panel for adjusting simulation parameters in real-time using sliders and controls.",
+        "details": "1. Create a ParameterPanel class using Pygame GUI with:\n   - Sliders for each adjustable parameter\n   - Reset buttons for individual parameters\n   - Master reset button for all parameters\n   - Parameter grouping by category\n\n2. Implement the following parameter controls:\n   - Movement speed slider (0.5x - 2x)\n   - Movement randomness slider (0-100%)\n   - Pheromone sensitivity slider (0-100%)\n   - Pheromone decay rate slider (0-100%)\n   - Food detection radius slider (1-20 pixels)\n   - Colony attraction strength slider (0-100%)\n   - Ant spawn rate slider (0-10 ants per second)\n\n3. Create event handling system to capture parameter changes\n\n4. Implement parameter value display next to sliders\n\n5. Add tooltips explaining each parameter's effect",
+        "testStrategy": "Test the parameter panel by:\n1. Verifying all sliders update their respective values correctly\n2. Confirming reset buttons work as expected\n3. Testing that parameter changes affect simulation in real-time\n4. Validating UI layout works at different resolutions\n5. Checking tooltip functionality\n6. Testing edge cases (min/max values)",
+        "priority": "medium",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement UI Component Framework for Controls",
+            "description": "Create reusable UI components for parameter controls including sliders, toggles, and numeric inputs",
+            "dependencies": [],
+            "details": "Develop a set of standardized UI components that will be used across the parameter panel. Include sliders with appropriate ranges and step values, toggle switches for boolean parameters, and numeric input fields with validation. Ensure components have consistent styling and accessibility features. Each component should expose a standard interface for getting/setting values and handling user interaction events.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Develop Parameter Grouping and Layout System",
+            "description": "Create a flexible layout system to organize parameters into logical groups with appropriate hierarchy",
+            "dependencies": [
+              1
+            ],
+            "details": "Design and implement a system for grouping related parameters together in the UI. Create collapsible sections, tabs, or other organizational structures to manage complexity. Implement responsive layouts that adapt to different screen sizes. Include support for parameter labels, tooltips, and help text. Ensure the layout system can handle dynamic addition or removal of parameters.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Implement Event Handling for Parameter Changes",
+            "description": "Create a robust event system to handle parameter changes, validation, and reset functionality",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Develop an event handling system that connects UI components to the underlying simulation. Implement debouncing for frequently changing values (like sliders) to prevent performance issues. Add validation to ensure parameters stay within acceptable ranges. Create reset functionality to return parameters to default values (both individually and group-wide). Implement an undo/redo system for parameter changes. Ensure the UI remains responsive during simulation updates.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Implement Colony Statistics Display",
+        "description": "Create the UI component that displays live colony statistics including population, food collected, and efficiency metrics.",
+        "details": "1. Create a StatisticsDisplay class with:\n   - Text rendering for numerical statistics\n   - Small trend graphs for key metrics\n   - Color coding for positive/negative trends\n\n2. Display the following statistics:\n   - Current ant population\n   - Total food collected\n   - Collection rate (food per minute)\n   - Efficiency (food per ant)\n   - Average foraging distance\n   - Current parameter settings\n\n3. Implement update method to refresh statistics each frame\n\n4. Add togglable detailed view with additional metrics\n\n5. Create simple animations for significant changes (flashing values, etc.)",
+        "testStrategy": "Test the statistics display by:\n1. Verifying all metrics update correctly in real-time\n2. Confirming trend indicators reflect actual simulation changes\n3. Testing layout at different resolutions\n4. Validating toggle functionality for detailed view\n5. Checking performance impact of statistics calculation\n6. Visual inspection of readability and clarity",
+        "priority": "medium",
+        "dependencies": [
+          3,
+          7
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement Core Statistics Calculation and Tracking",
+            "description": "Create a system to calculate and track essential colony statistics over time",
+            "dependencies": [],
+            "details": "Develop a statistics manager that tracks key metrics like population, resources, production rates, and efficiency. Implement data structures to store historical values for trend analysis. Create methods to update statistics at regular intervals and ensure accurate calculations. Include functionality to calculate derived statistics (growth rates, efficiency ratios, etc.) from raw data.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Develop Text-based Statistics Rendering System",
+            "description": "Create a UI component to display colony statistics in text format",
+            "dependencies": [
+              1
+            ],
+            "details": "Design a clean, organized layout for displaying statistics in text form. Implement formatting for different types of statistics (percentages, whole numbers, ratios). Create a component that updates automatically when statistics change. Include toggles or filters to show different categories of statistics. Ensure the display is responsive and scales appropriately.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Create Trend Visualization with Simple Graphs",
+            "description": "Implement visual representations of statistical trends using simple graphs",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Design and implement line graphs to show changes in key statistics over time. Create bar charts for comparing different metrics. Implement color coding to highlight positive/negative trends. Ensure graphs update efficiently without causing performance issues. Add interactive elements like tooltips to show precise values when hovering over graph elements.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Develop Simulation Controls",
+        "description": "Implement play/pause, speed adjustment, and reset functionality for controlling the simulation.",
+        "details": "1. Create a SimulationControls class with:\n   - Play/pause button\n   - Speed adjustment slider (0.25x - 4x)\n   - Reset simulation button\n   - Step forward button (for frame-by-frame analysis when paused)\n\n2. Implement time scaling for simulation updates\n\n3. Create proper state management for paused simulation\n\n4. Add keyboard shortcuts for common controls:\n   - Space: Play/pause\n   - R: Reset\n   - +/-: Speed up/slow down\n   - S: Single step\n\n5. Add visual indicators for current simulation state and speed",
+        "testStrategy": "Test the simulation controls by:\n1. Verifying play/pause correctly stops/starts the simulation\n2. Confirming speed adjustments work as expected\n3. Testing reset functionality properly restores initial state\n4. Validating keyboard shortcuts work correctly\n5. Checking that step forward works in paused state\n6. Testing edge cases (max speed, multiple rapid state changes)",
+        "priority": "medium",
+        "dependencies": [
+          1,
+          7
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement Play/Pause and Reset Controls",
+            "description": "Create the core simulation control functionality for starting, stopping, and resetting the simulation state.",
+            "dependencies": [],
+            "details": "Develop a control system that handles play/pause toggle functionality with proper state management. Implement a reset function that returns all simulation elements to their initial state. Ensure the simulation loop correctly responds to these control states. Add visual indicators for the current simulation state (running/paused).",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Develop Simulation Speed Adjustment System",
+            "description": "Create a mechanism to adjust and maintain consistent simulation speed at different rates.",
+            "dependencies": [
+              1
+            ],
+            "details": "Implement a speed control system with at least 3 different speed settings (e.g., slow, normal, fast). Ensure timing consistency across different speeds by using appropriate time scaling factors. Create UI controls for speed adjustment with visual indicators of the current speed setting. Test that physics calculations and animations remain stable at all speed settings.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Add Keyboard Shortcuts and State Indicators",
+            "description": "Implement keyboard controls for simulation management and visual indicators for simulation state.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Add keyboard shortcuts for play/pause (space), reset (R), and speed adjustment (arrow keys). Implement visual feedback for all control states including current speed, running/paused status, and when reset occurs. Create an on-screen help panel or tooltip system to display available keyboard shortcuts. Ensure keyboard controls work consistently across different browsers and platforms.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "title": "Implement Visual Feedback System",
+        "description": "Create clear visual distinctions between ants, food, pheromone trails, and the colony to enhance user understanding of the simulation.",
+        "details": "1. Design and implement visual representations for:\n   - Ants (different states shown with different colors/shapes)\n   - Food sources (size proportional to amount)\n   - Pheromone trails (color intensity based on strength)\n   - Colony (central structure with visual indicators of activity)\n\n2. Implement color schemes that are:\n   - Visually distinct for different elements\n   - Colorblind-friendly\n   - Aesthetically pleasing\n\n3. Add simple animations for:\n   - Ant movement\n   - Food collection\n   - Pheromone deposition\n   - Colony activity\n\n4. Implement zoom and pan controls for observing different areas\n\n5. Add optional grid overlay for distance reference",
+        "testStrategy": "Test the visual feedback system by:\n1. Verifying all elements are clearly distinguishable\n2. Confirming animations correctly represent simulation events\n3. Testing zoom and pan functionality\n4. Validating performance with many visual elements\n5. Checking colorblind mode effectiveness\n6. User testing for intuitive understanding of visual elements",
+        "priority": "medium",
+        "dependencies": [
+          2,
+          3,
+          4,
+          5
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Entity Visualization System",
+            "description": "Develop a system for visualizing entities with state-based appearance changes",
+            "dependencies": [],
+            "details": "Create a rendering system that displays entities with visual properties that reflect their current state. Implement color coding, shape variations, and size adjustments based on entity attributes. Ensure colorblind-friendly design with multiple visual cues beyond just color. Include a configuration system for entity appearance rules and implement efficient rendering for large numbers of entities.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Pheromone Trail Visualization",
+            "description": "Implement a system to visualize pheromone trails with varying intensity and decay",
+            "dependencies": [
+              1
+            ],
+            "details": "Design a visualization layer for pheromone trails that shows intensity through color gradients or line thickness. Implement temporal decay effects for trails that fade over time. Create an efficient rendering approach that can handle thousands of trail segments without performance degradation. Include options to toggle trail visibility and adjust visual properties.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Entity Animation System",
+            "description": "Create an animation system for smooth entity movements and action visualizations",
+            "dependencies": [
+              1
+            ],
+            "details": "Develop a system to animate entity movements between positions with appropriate easing functions. Implement visual effects for entity actions (collecting, fighting, etc.) with appropriate timing. Create a queue system for handling multiple sequential animations. Ensure animations can be disabled or simplified for performance optimization on less powerful devices.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Camera Control System",
+            "description": "Implement camera controls for zoom and pan functionality with appropriate constraints",
+            "dependencies": [
+              1,
+              2,
+              3
+            ],
+            "details": "Create smooth zoom functionality with appropriate min/max limits and mouse wheel support. Implement panning controls with edge constraints to prevent viewing empty areas. Add keyboard shortcuts for camera manipulation and reset functionality. Ensure all visualizations (entities, trails, animations) scale and render appropriately at different zoom levels.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 11,
+        "title": "Integrate Core Simulation Components",
+        "description": "Connect all core simulation components (ants, colony, food, pheromones) into a cohesive system with proper interaction handling.",
+        "details": "1. Create a SimulationManager class to:\n   - Initialize all subsystems\n   - Manage update order and timing\n   - Handle interactions between components\n   - Maintain simulation state\n\n2. Implement proper interaction handling for:\n   - Ants finding food\n   - Ants following pheromones\n   - Ants returning food to colony\n   - Colony spawning new ants\n   - Food sources being depleted\n\n3. Create an efficient main update loop with:\n   - Time-based updates (delta time)\n   - Performance monitoring\n   - State consistency checks\n\n4. Implement event system for significant simulation events\n\n5. Add debug mode for component visualization (hitboxes, states, etc.)",
+        "testStrategy": "Test the integrated simulation by:\n1. Verifying all components interact correctly\n2. Confirming the simulation runs at target frame rate with 500+ ants\n3. Testing complex scenarios with many interactions\n4. Validating event system correctly reports significant events\n5. Checking memory usage over extended simulation time\n6. Running stress tests with maximum entities",
+        "priority": "high",
+        "dependencies": [
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement Simulation Manager",
+            "description": "Create a central simulation manager class that coordinates all simulation components and maintains the global state.",
+            "dependencies": [],
+            "details": "Develop a SimulationManager class that initializes, updates, and manages all simulation subsystems. Implement methods for adding/removing entities, accessing subsystems, and controlling simulation flow. Include configuration options for simulation parameters and ensure thread safety for concurrent access.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Develop Entity Interaction System",
+            "description": "Create a system that handles all interactions between entities in the simulation.",
+            "dependencies": [
+              1
+            ],
+            "details": "Implement collision detection and resolution between entities. Create an interaction registry for defining valid interaction types between different entity classes. Develop a spatial partitioning system for efficient proximity queries. Include interaction events that can trigger state changes in entities.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Implement Time-based Update Loop",
+            "description": "Create a robust update system that handles variable time steps and maintains simulation stability.",
+            "dependencies": [
+              1
+            ],
+            "details": "Develop a fixed timestep update loop with interpolation for rendering. Implement time scaling to support pausing, slow-motion, and fast-forward. Create a priority-based update order for simulation subsystems. Add performance monitoring to track update times and maintain target frame rates.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Create Event System for Simulation Events",
+            "description": "Implement a flexible event system that allows components to communicate without tight coupling.",
+            "dependencies": [
+              1,
+              3
+            ],
+            "details": "Design an observer pattern implementation for event subscription and notification. Create standard event types for common simulation occurrences. Implement event queuing and processing within the update loop. Add support for delayed and conditional events. Include logging capabilities for debugging event flow.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Develop Debug Visualization System",
+            "description": "Create tools to visualize simulation state and debug information in real-time.",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "details": "Implement visualization overlays for entity properties, collision boundaries, and interaction zones. Create a system for tracking and displaying simulation metrics (entity counts, update times, etc.). Add tools for visualizing event flow between components. Implement state history recording and playback for debugging complex scenarios.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 12,
+        "title": "Implement Parameter System Backend",
+        "description": "Create the backend system that processes parameter changes and applies them to the simulation components in real-time.",
+        "details": "1. Create a ParameterManager class to:\n   - Store current parameter values\n   - Validate parameter changes\n   - Apply changes to appropriate components\n   - Save/load parameter presets\n\n2. Implement parameter categories:\n   - Movement parameters\n   - Pheromone parameters\n   - Colony parameters\n   - Food parameters\n   - Visualization parameters\n\n3. Create observer pattern for parameter changes:\n   - Components register for parameter updates\n   - ParameterManager notifies relevant components when values change\n\n4. Add parameter presets for interesting behaviors:\n   - Efficient foraging\n   - Exploratory behavior\n   - Aggressive expansion\n   - Balanced strategy\n\n5. Implement parameter interpolation for smooth transitions",
+        "testStrategy": "Test the parameter system by:\n1. Verifying parameter changes affect simulation correctly\n2. Confirming all components update when relevant parameters change\n3. Testing preset loading and application\n4. Validating parameter validation prevents invalid values\n5. Checking performance impact of parameter changes\n6. Testing parameter interpolation for smooth transitions",
+        "priority": "high",
+        "dependencies": [
+          7,
+          11
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement Parameter Storage and Validation System",
+            "description": "Create a robust system for storing parameters with type checking and validation rules",
+            "dependencies": [],
+            "details": "Design and implement a parameter storage system that supports different data types (numeric, boolean, string, vector, etc.). Include validation rules to ensure parameters stay within acceptable ranges. Implement getter/setter methods with validation hooks. Create a parameter registry that maintains metadata about each parameter including default values, ranges, and descriptions.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Develop Observer Pattern for Parameter Change Notifications",
+            "description": "Create a system that notifies relevant components when parameters change",
+            "dependencies": [
+              1
+            ],
+            "details": "Implement an observer pattern where simulation components can subscribe to parameter changes. Create interfaces for observer registration and notification. Ensure efficient notification that only triggers for relevant parameter changes. Include support for filtering notifications based on parameter groups or specific changes. Implement thread-safety for parameter updates in multi-threaded contexts.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Build Parameter Preset Management System",
+            "description": "Create functionality to save, load, and manage parameter presets",
+            "dependencies": [
+              1
+            ],
+            "details": "Implement serialization/deserialization of parameter sets to JSON or similar format. Create preset management with ability to save current state, load saved presets, and define default presets. Include versioning for backward compatibility as parameter definitions evolve. Add preset comparison functionality to highlight differences between parameter sets. Implement preset categories for organization.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Implement Parameter Interpolation System",
+            "description": "Create a system for smooth transitions between parameter values",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Design and implement interpolation functions for different parameter types. Support various easing functions (linear, exponential, etc.). Create a scheduling system for timed parameter changes. Ensure interpolation events properly trigger the observer notification system. Implement cancellation and modification of in-progress interpolations. Add support for parameter animation sequences.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 13,
+        "title": "Create Main Application Loop",
+        "description": "Implement the main application loop that coordinates UI updates, simulation processing, and rendering with proper timing and event handling.",
+        "details": "1. Create the main.py entry point with:\n   - Initialization of all subsystems\n   - Main game loop structure\n   - Event handling system\n   - Timing and frame rate management\n\n2. Implement proper update sequence:\n   - Process input events\n   - Update simulation (with time scaling)\n   - Update UI components\n   - Render all elements\n   - Display performance metrics\n\n3. Add graceful exit handling\n\n4. Implement frame rate limiting and timing\n\n5. Create debug overlay with performance metrics:\n   - FPS counter\n   - Entity counts\n   - Update time breakdown\n\n6. Add configuration file loading for startup settings",
+        "testStrategy": "Test the main application loop by:\n1. Verifying stable frame rate under various conditions\n2. Confirming all events are processed correctly\n3. Testing startup with different configuration settings\n4. Validating graceful shutdown\n5. Checking performance metrics accuracy\n6. Running extended sessions to test for memory leaks or performance degradation",
+        "priority": "high",
+        "dependencies": [
+          1,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement Application Initialization and Shutdown Sequence",
+            "description": "Create the startup and shutdown procedures for the application, including resource loading, system initialization, and proper cleanup.",
+            "dependencies": [],
+            "details": "Implement functions for initializing all required subsystems (graphics, input, audio, etc.), loading configuration settings, and establishing the application state. Create a clean shutdown sequence that properly releases resources, saves necessary data, and ensures graceful termination. Include error handling for initialization failures and implement a logging system for startup/shutdown events.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Develop Event Handling and Input Processing System",
+            "description": "Create a robust event queue and input processing system that captures and routes all user interactions and system events.",
+            "dependencies": [
+              1
+            ],
+            "details": "Implement an event queue that collects input events (keyboard, mouse, touch, etc.) and system notifications. Create event dispatching logic to route events to appropriate handlers. Develop input state tracking to maintain the current state of all input devices. Include support for event filtering and prioritization. Ensure the system can handle high event volumes without performance degradation.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Create Update and Render Sequence with Timing Management",
+            "description": "Implement the core game loop with proper separation of update and render operations, including frame timing and rate control.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Develop a timing system that tracks elapsed time between frames. Implement fixed-time update steps for consistent simulation regardless of frame rate. Create a rendering sequence that interpolates between states when necessary. Add frame rate limiting options (vsync, custom caps). Ensure the loop can adapt to different performance conditions while maintaining stability. Include pause/resume functionality for the main loop.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Implement Performance Monitoring System",
+            "description": "Create a comprehensive performance tracking system that monitors and reports on various aspects of the application's runtime performance.",
+            "dependencies": [
+              3
+            ],
+            "details": "Implement frame time tracking and statistics collection (min/max/average FPS). Create performance counters for key systems (rendering, physics, AI, etc.). Develop a profiling system to identify bottlenecks in the main loop. Add visualization tools for performance metrics (graphs, overlays). Implement performance warnings when metrics fall below thresholds. Create a logging system for performance data that can be analyzed offline.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 14,
+        "title": "Implement Basic Tutorial System",
+        "description": "Create a simple tutorial system that introduces users to the simulation controls and basic concepts.",
+        "details": "1. Create a TutorialManager class with:\n   - Sequential tutorial steps\n   - Highlight/focus on relevant UI elements\n   - Text explanations of concepts\n   - Interactive demonstrations\n\n2. Implement the following tutorial sections:\n   - Basic controls introduction\n   - Parameter adjustment explanation\n   - Food discovery demonstration\n   - Pheromone trail explanation\n   - Colony management basics\n\n3. Add skip/replay options for each section\n\n4. Create visual overlays to highlight important elements\n\n5. Implement guided parameter adjustment examples\n\n6. Add option to disable tutorial on startup",
+        "testStrategy": "Test the tutorial system by:\n1. Verifying all tutorial steps display correctly\n2. Confirming interactive elements work as expected\n3. Testing skip/replay functionality\n4. Validating tutorial flow makes logical sense\n5. User testing with individuals unfamiliar with the simulation\n6. Checking tutorial can be properly disabled",
+        "priority": "low",
+        "dependencies": [
+          7,
+          8,
+          9,
+          10,
+          13
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Tutorial Step Sequencing and Management",
+            "description": "Implement the core tutorial flow system that manages progression through tutorial steps",
+            "dependencies": [],
+            "details": "Create a TutorialManager class that handles: 1) Defining and storing tutorial sequences, 2) Tracking user progress through steps, 3) Providing next/previous navigation, 4) Persisting tutorial completion state, 5) Supporting conditional branching based on user actions",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "UI Highlighting and Focus System",
+            "description": "Develop a system to visually highlight and focus on specific UI elements during tutorials",
+            "dependencies": [
+              1
+            ],
+            "details": "Implement: 1) Element highlighting with customizable visual effects, 2) Dimming/blurring of non-focused areas, 3) Smooth transitions between highlighted elements, 4) Accessibility considerations for highlighted elements, 5) Integration with the tutorial step sequencing system",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Interactive Demonstration Components",
+            "description": "Create components that demonstrate interactions and allow users to practice within the tutorial",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Build: 1) Interactive overlays that guide user actions, 2) Simulated interactions that users can follow along with, 3) Practice mode with feedback on user actions, 4) Progress validation to ensure users successfully complete demonstrated tasks, 5) Fallback mechanisms if users struggle with interactions",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 15,
+        "title": "Optimize Simulation Performance",
+        "description": "Optimize the simulation to meet the performance target of smooth operation with 500+ ants at 60 FPS.",
+        "details": "1. Implement performance optimizations:\n   - Spatial partitioning for entity interactions\n   - Batch rendering for similar entities\n   - Efficient pheromone grid using NumPy arrays\n   - Visibility culling for off-screen entities\n   - Simplified physics for distant entities\n\n2. Create performance profiling tools:\n   - Component-specific timing\n   - Entity count monitoring\n   - Memory usage tracking\n   - Bottleneck identification\n\n3. Optimize critical algorithms:\n   - Pheromone diffusion and decay\n   - Ant pathfinding\n   - Collision detection\n\n4. Implement level-of-detail system for large colonies\n\n5. Add performance scaling options in settings",
+        "testStrategy": "Test performance optimizations by:\n1. Measuring FPS with increasing ant populations (100, 250, 500, 1000)\n2. Profiling memory usage over extended sessions\n3. Comparing algorithm efficiency before and after optimizations\n4. Testing on minimum spec hardware\n5. Validating visual quality is maintained with optimizations\n6. Stress testing with maximum entity counts",
+        "priority": "medium",
+        "dependencies": [
+          11,
+          13
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement Spatial Partitioning System",
+            "description": "Design and implement a spatial partitioning system (quadtree/octree) to optimize collision detection and entity management",
+            "dependencies": [],
+            "details": "Research appropriate spatial partitioning structures for our simulation needs. Implement the chosen structure (likely quadtree for 2D or octree for 3D). Create interfaces for entity insertion, removal, and spatial queries. Benchmark performance against current brute-force approach. Document the implementation with clear examples of usage.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Optimize Rendering Pipeline",
+            "description": "Implement batch rendering, frustum culling, and other rendering optimization techniques",
+            "dependencies": [
+              1
+            ],
+            "details": "Profile current rendering bottlenecks. Implement batch rendering for similar objects. Add frustum culling to avoid rendering off-screen entities. Optimize shader complexity and texture usage. Implement occlusion culling where appropriate. Document performance improvements with metrics.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Optimize Critical Path Algorithms",
+            "description": "Identify and optimize algorithms in critical performance paths, focusing on computational hotspots",
+            "dependencies": [
+              1
+            ],
+            "details": "Use profiling tools to identify computational bottlenecks. Optimize pathfinding algorithms if used. Improve physics calculations efficiency. Consider multithreading for independent calculations. Optimize data structures for frequent operations. Document optimization strategies and performance gains.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Develop Performance Profiling Tools",
+            "description": "Create custom profiling tools to measure and visualize system performance metrics",
+            "dependencies": [],
+            "details": "Implement frame time tracking and visualization. Create memory usage monitoring tools. Add CPU/GPU utilization metrics. Develop visualization for entity count and update times. Create a dashboard for real-time performance monitoring. Document how to interpret results and identify issues.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Implement Level-of-Detail (LOD) System",
+            "description": "Design and implement a LOD system to reduce detail for distant or less important entities",
+            "dependencies": [
+              2
+            ],
+            "details": "Design LOD levels for different entity types. Implement distance-based LOD switching. Create simplified models/behaviors for distant objects. Add smooth transitions between detail levels where appropriate. Integrate with the rendering system. Document the LOD strategy and expected performance benefits.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 16,
+        "title": "Implement Save/Load System",
+        "description": "Create functionality to save and load simulation states, including colony configuration, ant positions, and parameter settings.",
+        "details": "1. Create a SaveManager class with:\n   - Save current simulation state to file\n   - Load simulation state from file\n   - Auto-save functionality\n   - Save browsing interface\n\n2. Implement serialization for:\n   - All entity positions and states\n   - Parameter settings\n   - Colony statistics\n   - Food and pheromone distributions\n\n3. Add save metadata:\n   - Timestamp\n   - Colony statistics summary\n   - Parameter configuration summary\n   - Optional user notes\n\n4. Create UI for save/load operations\n\n5. Implement parameter-only saves for sharing configurations",
+        "testStrategy": "Test the save/load system by:\n1. Verifying saved states can be accurately restored\n2. Confirming all entity properties are preserved\n3. Testing with various colony sizes and complexities\n4. Validating metadata is correctly stored and displayed\n5. Checking backward compatibility with saved states from earlier versions\n6. Testing parameter-only saves and loads",
+        "priority": "low",
+        "dependencies": [
+          11,
+          12,
+          13
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Entity Serialization Framework",
+            "description": "Develop a framework for serializing and deserializing all entity types in the simulation",
+            "dependencies": [],
+            "details": "Create a serialization system that can convert all entity types (cells, organisms, environmental factors) to and from a storable format. Implement versioning to handle backward compatibility. Include handling for complex relationships between entities and ensure all properties are properly captured. Test with various entity configurations to verify data integrity during save/load cycles.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "File Management for Save States",
+            "description": "Implement file operations for saving and loading simulation states",
+            "dependencies": [
+              1
+            ],
+            "details": "Create a file management system that handles writing serialized data to disk and reading it back. Implement compression to reduce file sizes. Add error handling for file corruption, missing files, and disk space issues. Include automatic backup functionality to prevent data loss. Design a file naming convention and directory structure that supports multiple save files.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Save Metadata and Browsing Interface",
+            "description": "Create a user interface for browsing, managing, and selecting save files",
+            "dependencies": [
+              2
+            ],
+            "details": "Develop a system to store and display metadata about each save (timestamp, simulation parameters, thumbnail, description). Create a browsing interface that allows users to view, sort, and filter saves. Implement save management features like renaming, deleting, and duplicating saves. Add preview functionality to see key information about a save before loading it.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Parameter-Only Save System",
+            "description": "Implement a lightweight system for saving and loading just simulation parameters",
+            "dependencies": [
+              1
+            ],
+            "details": "Create a separate system for storing just the parameters used to initialize a simulation, without the full state. Design a format for parameter presets that is human-readable. Implement import/export functionality for sharing parameter sets. Add a UI for managing parameter presets including categorization and favorites. Ensure compatibility with the full save system.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 17,
+        "title": "Create Configuration and Settings System",
+        "description": "Implement a system for managing application settings, display options, and default simulation parameters.",
+        "details": "1. Create a ConfigManager class with:\n   - Load/save configuration from file\n   - Apply settings to appropriate systems\n   - Validate configuration values\n\n2. Implement the following configuration categories:\n   - Display settings (resolution, fullscreen, etc.)\n   - Performance options (detail level, max entities)\n   - Default simulation parameters\n   - UI preferences (color scheme, size)\n   - Control settings (key bindings)\n\n3. Create settings UI screen\n\n4. Implement configuration file in standard format (JSON/YAML)\n\n5. Add first-run detection and default configuration",
+        "testStrategy": "Test the configuration system by:\n1. Verifying all settings are correctly saved and loaded\n2. Confirming settings changes apply correctly\n3. Testing with various display configurations\n4. Validating first-run default settings\n5. Checking invalid configuration handling\n6. Testing settings UI functionality",
+        "priority": "medium",
+        "dependencies": [
+          13
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Configuration File Management",
+            "description": "Implement a system to read, write, and validate configuration files",
+            "dependencies": [],
+            "details": "Create a configuration manager that can: 1) Load settings from JSON/YAML files, 2) Validate configuration against a schema, 3) Handle default values for missing settings, 4) Save updated configurations back to disk, 5) Implement error handling for corrupted files",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Settings Application System",
+            "description": "Develop a system to apply configuration settings to relevant application components",
+            "dependencies": [
+              1
+            ],
+            "details": "Create a settings application service that: 1) Distributes settings to appropriate application modules, 2) Implements observers/events for settings changes, 3) Handles runtime validation of setting changes, 4) Provides methods for components to request current settings, 5) Manages setting dependencies and conflicts",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Settings UI Implementation",
+            "description": "Create user interface components for viewing and modifying application settings",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Implement UI components that: 1) Display current settings in an organized, categorized manner, 2) Allow users to modify settings with appropriate input controls, 3) Validate user input before applying changes, 4) Provide visual feedback for setting changes, 5) Include help text and documentation for settings options",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 18,
+        "title": "Implement Data Export and Analysis Features",
+        "description": "Create functionality to export simulation data for external analysis and provide basic in-app analysis tools.",
+        "details": "1. Create a DataExporter class with:\n   - CSV export of simulation statistics\n   - Screenshot capture\n   - Simulation recording (series of states)\n   - Parameter configuration export\n\n2. Implement basic analysis tools:\n   - Time-series graphs of key metrics\n   - Heat maps of ant activity\n   - Food collection efficiency analysis\n   - Parameter sensitivity testing\n\n3. Add comparison tools for different parameter sets\n\n4. Create visualization of pheromone network structure\n\n5. Implement experiment mode with controlled variables",
+        "testStrategy": "Test the data export features by:\n1. Verifying exported CSV data is complete and well-formatted\n2. Confirming screenshots capture the simulation correctly\n3. Testing analysis tools with various simulation states\n4. Validating heat maps accurately represent activity\n5. Checking experiment mode controls variables correctly\n6. Testing with large datasets for performance",
+        "priority": "low",
+        "dependencies": [
+          11,
+          13,
+          15
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement CSV and Data Export Functionality",
+            "description": "Develop robust data export capabilities allowing users to export their tracking data in various formats including CSV, JSON, and Excel.",
+            "dependencies": [],
+            "details": "Create a data export module that processes the collected tracking data into standardized formats. Include options for date range filtering, data field selection, and batch export capabilities. Ensure proper formatting of timestamps and metrics. Add documentation on the exported data structure.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Develop Time-Series Visualization Tools",
+            "description": "Create interactive time-series charts and graphs to visualize tracking data over time periods.",
+            "dependencies": [
+              1
+            ],
+            "details": "Implement line charts, bar graphs, and area charts for visualizing trends over time. Include zoom functionality, date range selection, and comparison between different time periods. Add options for smoothing data, showing averages, and highlighting outliers. Ensure visualizations are responsive and work across device sizes.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Create Heat Map and Activity Visualization",
+            "description": "Design and implement heat map visualizations to show intensity and patterns in user activity data.",
+            "dependencies": [
+              2
+            ],
+            "details": "Develop color-coded heat map visualizations showing activity intensity across different time periods (daily, weekly, monthly). Include calendar-style views for long-term pattern recognition. Add interactive elements allowing users to drill down into specific time periods. Implement activity flow diagrams showing sequences and relationships between tracked activities.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Build Experiment Mode with Controlled Variables",
+            "description": "Develop an experiment framework allowing users to set up controlled tracking experiments with variables, hypotheses, and result analysis.",
+            "dependencies": [
+              1,
+              2,
+              3
+            ],
+            "details": "Create an experiment setup wizard guiding users through defining variables, control periods, and experimental periods. Implement statistical analysis tools to compare results between control and experimental conditions. Add visualization tools specifically for experiment results showing differences and correlations. Include experiment templates for common use cases like habit formation or productivity optimization.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 19,
+        "title": "Create Comprehensive Documentation",
+        "description": "Develop user documentation, developer documentation, and in-app help systems.",
+        "details": "1. Create user documentation:\n   - Getting started guide\n   - Parameter explanation guide\n   - Tutorial walkthrough\n   - Advanced usage techniques\n   - Troubleshooting section\n\n2. Develop developer documentation:\n   - Code architecture overview\n   - API documentation\n   - Extension guide\n   - Performance optimization notes\n\n3. Implement in-app help system:\n   - Context-sensitive help\n   - Parameter descriptions\n   - UI element explanations\n   - Keyboard shortcut reference\n\n4. Create online documentation repository\n\n5. Add example scenarios with explanations",
+        "testStrategy": "Test the documentation by:\n1. Verifying all features are accurately documented\n2. Confirming in-app help provides relevant information\n3. Testing documentation with users of different experience levels\n4. Validating all code examples work as described\n5. Checking for clarity and completeness\n6. Proofreading for technical accuracy",
+        "priority": "medium",
+        "dependencies": [
+          13,
+          14
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create User Guide and Tutorial Documentation",
+            "description": "Develop comprehensive user documentation including step-by-step tutorials, feature explanations, and common workflows",
+            "dependencies": [],
+            "details": "Create user-friendly documentation that explains all application features, includes screenshots, provides step-by-step tutorials for common tasks, and addresses frequently asked questions. Organize content logically with a table of contents and ensure language is accessible to non-technical users.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Develop Technical Documentation and API Reference",
+            "description": "Create detailed developer documentation including architecture overview, API reference, and integration guides",
+            "dependencies": [],
+            "details": "Document the system architecture, component interactions, and data models. Create comprehensive API reference with endpoints, parameters, response formats, and example requests/responses. Include integration guides, authentication procedures, and best practices for developers working with the system.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Implement In-App Help System",
+            "description": "Design and implement contextual help features within the application interface",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Create an in-app help system with tooltips, contextual help panels, and searchable help content. Integrate documentation content from user guides and technical documentation. Implement feature tours for new users and ensure help content is accessible from relevant points in the user interface.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 20,
+        "title": "Prepare for Release and Distribution",
+        "description": "Finalize the application for initial release, including packaging, installation process, and update mechanism.",
+        "details": "1. Create distribution packages for:\n   - Windows (.exe installer)\n   - macOS (.dmg package)\n   - Linux (.deb, .rpm packages)\n\n2. Implement version checking and update notification\n\n3. Create installer with:\n   - Dependency checking\n   - System requirements verification\n   - Desktop shortcut creation\n   - First-run setup\n\n4. Prepare project website/repository:\n   - Download page\n   - Documentation\n   - Screenshot gallery\n   - Feature roadmap\n\n5. Create release notes and changelog\n\n6. Implement telemetry for usage statistics (opt-in)",
+        "testStrategy": "Test the release preparation by:\n1. Verifying installation works correctly on all target platforms\n2. Confirming update notification functions properly\n3. Testing installation with various system configurations\n4. Validating all package contents are complete\n5. Checking website links and downloads\n6. Performing clean installation testing on fresh systems",
+        "priority": "medium",
+        "dependencies": [
+          13,
+          15,
+          17,
+          19
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement Cross-platform Packaging System",
+            "description": "Create a unified packaging system that works across Windows, macOS, and Linux platforms",
+            "dependencies": [],
+            "details": "Develop scripts and configurations to package the application consistently across different operating systems. Include necessary binaries, libraries, and resources for each platform. Ensure file permissions and directory structures are properly maintained. Test packaging on all target platforms to verify consistency.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Create Installer with Dependency Checking",
+            "description": "Develop installation packages that verify and install required dependencies",
+            "dependencies": [
+              1
+            ],
+            "details": "Build platform-specific installers that check for required system dependencies before installation. Implement graceful handling of missing dependencies with clear user instructions. Create uninstallation capabilities. Test installation and uninstallation processes on all target platforms.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Develop Update Notification Mechanism",
+            "description": "Implement a system to check for and notify users about new versions",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Create a service that periodically checks for new releases. Implement user notifications for available updates with version information and changelog. Add configuration options for automatic updates vs. manual updates. Ensure secure update verification to prevent tampering.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Prepare Project Website and Distribution",
+            "description": "Set up website with download links, documentation, and distribution channels",
+            "dependencies": [
+              1,
+              2,
+              3
+            ],
+            "details": "Design and implement project website with download section for all platforms. Create comprehensive documentation including installation guides and FAQs. Set up distribution channels like package managers and app stores. Prepare marketing materials and announcements for the release.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
+      }
+    ],
+    "metadata": {
+      "created": "2025-06-25T02:40:59.611Z",
+      "updated": "2025-06-25T02:54:00.298Z",
+      "description": "Tasks for master context"
+    }
+  }
+}
