@@ -17,7 +17,7 @@
             "description": "Create a new Git repository with proper directory structure for the game project",
             "dependencies": [],
             "details": "1. Create a new Git repository\n2. Set up the following directory structure:\n   - src/ (for game source code)\n   - assets/ (for images, sounds, etc.)\n   - docs/ (for documentation)\n   - tests/ (for unit tests)\n3. Add a README.md with project description\n4. Create a .gitignore file for Python and Pygame projects\n5. Make initial commit",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -28,7 +28,7 @@
               1
             ],
             "details": "1. Create a virtual environment using venv or conda\n2. Create requirements.txt with necessary dependencies (pygame, etc.)\n3. Install dependencies\n4. Create setup.py or pyproject.toml for package configuration\n5. Document environment setup instructions in README.md",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -39,7 +39,7 @@
               2
             ],
             "details": "1. Create a main.py file in the src directory\n2. Implement basic Pygame initialization code\n3. Add a simple game loop that displays a window\n4. Include basic event handling (quit on ESC or window close)\n5. Test the setup on different developer machines\n6. Document how to run the test application",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           }
         ]
@@ -1138,7 +1138,7 @@
     ],
     "metadata": {
       "created": "2025-06-25T02:40:59.611Z",
-      "updated": "2025-06-25T02:54:00.298Z",
+      "updated": "2025-06-27T06:20:01.725Z",
       "description": "Tasks for master context"
     }
   }
