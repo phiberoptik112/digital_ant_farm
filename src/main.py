@@ -2,6 +2,7 @@ import pygame
 import numpy as np
 from entities.ant import Ant, AntState
 from entities.pheromone import PheromoneManager, PheromoneType
+from entities.colony import Colony
 
 pygame.init()
 
@@ -12,15 +13,13 @@ running = True
 
 # --- Simulation Setup ---
 pheromone_manager = PheromoneManager(world_bounds=(0, 0, 800, 600))
-ants = []
 
-# Create a few ants at random positions
-for i in range(5):
-    pos = (np.random.uniform(100, 700), np.random.uniform(100, 500))
-    ant = Ant(position=pos, orientation=np.random.uniform(0, 360))
-    ant.set_state(AntState.SEARCHING)
-    ant.set_pheromone_manager(pheromone_manager)
-    ants.append(ant)
+# Create a colony at the center
+colony = Colony(position=(400, 300), max_population=20, spawn_rate=0.05)
+colony.set_pheromone_manager(pheromone_manager)
+
+# Give the colony some initial food so it can spawn ants
+colony.receive_food(100.0)
 
 # --- Main Loop ---
 while running:
@@ -31,10 +30,13 @@ while running:
             running = False
     screen.fill((30, 30, 30))
 
-    # Update ants and pheromones
-    for ant in ants:
-        ant.step()
+    # Update colony and pheromones
+    colony.update()
     pheromone_manager.update_all()
+    
+    # Update individual ants (this is what makes them move!)
+    for ant in colony.get_ants():
+        ant.step()
 
     # Draw pheromones (as faded circles)
     for pheromone in pheromone_manager._pheromones:
@@ -45,8 +47,13 @@ while running:
         pygame.draw.circle(s, color, (int(pheromone.radius_of_influence), int(pheromone.radius_of_influence)), int(pheromone.radius_of_influence), 0)
         screen.blit(s, (x - pheromone.radius_of_influence, y - pheromone.radius_of_influence))
 
-    # Draw ants
-    for ant in ants:
+    # Draw colony (nest)
+    colony_x, colony_y = int(colony.position[0]), int(colony.position[1])
+    pygame.draw.circle(screen, (139, 69, 19), (colony_x, colony_y), int(colony.radius), 0)  # Brown nest
+    pygame.draw.circle(screen, (160, 82, 45), (colony_x, colony_y), int(colony.radius), 3)  # Border
+
+    # Draw ants from the colony
+    for ant in colony.get_ants():
         x, y = int(ant.position[0]), int(ant.position[1])
         pygame.draw.circle(screen, (255, 255, 0), (x, y), 5)
         # Draw orientation as a line
@@ -54,6 +61,20 @@ while running:
         end_x = int(x + 10 * np.cos(rad))
         end_y = int(y + 10 * np.sin(rad))
         pygame.draw.line(screen, (255, 200, 0), (x, y), (end_x, end_y), 2)
+
+    # Display colony statistics
+    stats = colony.get_statistics()
+    font = pygame.font.Font(None, 24)
+    text_lines = [
+        f"Population: {stats['population']}/{stats['max_population']}",
+        f"Food: {stats['food_storage']:.1f}/{stats['max_food_storage']:.1f}",
+        f"Level: {stats['development_level']}",
+        f"Total Food: {stats['total_food_collected']:.1f}"
+    ]
+    
+    for i, line in enumerate(text_lines):
+        text_surface = font.render(line, True, (255, 255, 255))
+        screen.blit(text_surface, (10, 10 + i * 25))
 
     pygame.display.flip()
     clock.tick(60)
