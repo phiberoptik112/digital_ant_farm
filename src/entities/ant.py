@@ -40,6 +40,10 @@ class Ant:
         """Get the ant's current orientation in degrees."""
         return self._orientation
 
+    @orientation.setter
+    def orientation(self, value):
+        self._orientation = value
+
     @property
     def energy(self) -> float:
         """Get the ant's current energy level."""
