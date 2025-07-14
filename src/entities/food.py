@@ -1,12 +1,14 @@
 from typing import Tuple, Optional
 import numpy as np
+import time
 
 class FoodSource:
     """
     Represents a food source in the simulation with position, amount, and depletion mechanics.
     """
     def __init__(self, position: Tuple[float, float], amount: float = 100.0, 
-                 max_amount: float = 100.0, depletion_rate: float = 1.0):
+                 max_amount: float = 100.0, depletion_rate: float = 1.0,
+                 expiration_time: float = 30.0, refresh_time: float = 60.0):
         self._position = position  # (x, y)
         self._amount = min(amount, max_amount)  # Current food amount
         self._max_amount = max_amount  # Maximum capacity
@@ -15,6 +17,14 @@ class FoodSource:
         self._regeneration_cooldown = 0  # Ticks before regeneration starts
         self._max_regeneration_cooldown = 300  # 5 seconds at 60 FPS
         self._is_depleted = False
+        
+        # Time-based expiration system
+        self._expiration_time = expiration_time  # Time in seconds before food expires
+        self._refresh_time = refresh_time  # Time in seconds before food refreshes
+        self._spawn_time = time.time()  # When the food was created
+        self._last_refresh_time = time.time()  # When the food was last refreshed
+        self._is_expired = False
+        self._expiration_rate = 1.0  # Rate at which food expires (amount per second)
         
         # Visual properties
         self._base_radius = 10.0  # Base visual radius
@@ -41,18 +51,59 @@ class FoodSource:
         return self._is_depleted
 
     @property
+    def is_expired(self) -> bool:
+        """Check if the food source has expired."""
+        return self._is_expired
+
+    @property
+    def is_available(self) -> bool:
+        """Check if the food source is available (not depleted and not expired)."""
+        return not self._is_depleted and not self._is_expired and self._amount > 0
+
+    @property
     def depletion_percentage(self) -> float:
         """Get the percentage of food remaining (0-100)."""
         return (self._amount / self._max_amount) * 100.0
 
     @property
+    def time_until_expiration(self) -> float:
+        """Get time in seconds until food expires."""
+        if self._is_expired:
+            return 0.0
+        elapsed = time.time() - self._spawn_time
+        return max(0.0, self._expiration_time - elapsed)
+
+    @property
+    def time_until_refresh(self) -> float:
+        """Get time in seconds until food refreshes."""
+        if self.is_available:
+            return 0.0
+        elapsed = time.time() - self._last_refresh_time
+        return max(0.0, self._refresh_time - elapsed)
+
+    @property
     def visual_radius(self) -> float:
         """Get the visual radius based on current amount."""
-        if self._is_depleted:
+        if self._is_depleted or self._is_expired:
             return 0.0
         
         ratio = self._amount / self._max_amount
         return self._min_radius + (self._base_radius - self._min_radius) * ratio
+
+    @property
+    def visual_color(self) -> Tuple[int, int, int]:
+        """Get the visual color based on food state."""
+        if self._is_expired:
+            return (80, 40, 40)  # Dark red for expired
+        elif self._is_depleted:
+            return (60, 60, 60)  # Gray for depleted
+        else:
+            # Green to yellow based on amount
+            ratio = self._amount / self._max_amount
+            red = int(255 * (1 - ratio))
+            green = 255
+            blue = 0
+            return (red, green, blue)
 
     def collect_food(self, amount: float = None) -> float:
         """
@@ -62,7 +113,7 @@ class FoodSource:
         Returns:
             float: Actual amount collected
         """
-        if self._is_depleted:
+        if self._is_depleted or self._is_expired:
             return 0.0
         
         if amount is None:
@@ -90,6 +141,9 @@ class FoodSource:
         if self._is_depleted:
             self._is_depleted = False
         
+        if self._is_expired:
+            self._is_expired = False
+        
         space_available = self._max_amount - self._amount
         actual_amount = min(amount, space_available)
         self._amount += actual_amount
@@ -100,15 +154,66 @@ class FoodSource:
         """Set the regeneration rate (amount per tick)."""
         self._regeneration_rate = max(0.0, rate)
 
-    def update(self):
+    def set_expiration_time(self, time_seconds: float):
+        """Set the expiration time in seconds."""
+        self._expiration_time = max(0.0, time_seconds)
+
+    def set_refresh_time(self, time_seconds: float):
+        """Set the refresh time in seconds."""
+        self._refresh_time = max(0.0, time_seconds)
+
+    def set_expiration_rate(self, rate: float):
+        """Set the expiration rate (amount per second)."""
+        self._expiration_rate = max(0.0, rate)
+
+    def refresh_food(self):
+        """Manually refresh the food source."""
+        self._amount = self._max_amount
+        self._is_depleted = False
+        self._is_expired = False
+        self._spawn_time = time.time()
+        self._last_refresh_time = time.time()
+        self._regeneration_cooldown = 0
+
+    def update(self, delta_time: float = 1.0/60.0):
         """
         Update the food source (called each simulation tick).
-        Handles regeneration and cooldown timers.
+        Handles regeneration, expiration, and refresh timers.
+        Args:
+            delta_time: Time elapsed since last update (in seconds)
         """
+        current_time = time.time()
+        
+        # Handle time-based expiration
+        if not self._is_expired and self.is_available:
+            time_since_spawn = current_time - self._spawn_time
+            if time_since_spawn >= self._expiration_time:
+                # Food has expired, start decaying
+                self._is_expired = True
+                self._last_refresh_time = current_time
+            else:
+                # Gradually reduce food over time as it approaches expiration
+                time_remaining = self._expiration_time - time_since_spawn
+                if time_remaining < self._expiration_time * 0.5:  # Last 50% of time
+                    decay_amount = self._expiration_rate * delta_time
+                    self._amount = max(0, self._amount - decay_amount)
+                    if self._amount <= 0:
+                        self._is_expired = True
+                        self._last_refresh_time = current_time
+        
+        # Handle refresh after expiration
+        if self._is_expired or self._is_depleted:
+            time_since_last_refresh = current_time - self._last_refresh_time
+            if time_since_last_refresh >= self._refresh_time:
+                self.refresh_food()
+                return
+        
+        # Handle regeneration cooldown
         if self._regeneration_cooldown > 0:
             self._regeneration_cooldown -= 1
             return
         
+        # Handle regeneration
         if self._is_depleted and self._regeneration_rate > 0:
             self.add_food(self._regeneration_rate)
 
@@ -136,7 +241,7 @@ class FoodSource:
         return self.distance_to(position) <= range_radius
 
     def __repr__(self):
-        return f"FoodSource(pos={self._position}, amount={self._amount:.1f}/{self._max_amount}, depleted={self._is_depleted})"
+        return f"FoodSource(pos={self._position}, amount={self._amount:.1f}/{self._max_amount}, depleted={self._is_depleted}, expired={self._is_expired})"
 
 
 class FoodManager:
@@ -149,8 +254,19 @@ class FoodManager:
         self._spatial_grid = {}  # Simple spatial hash for efficient queries
         self._grid_size = 50  # Size of each grid cell
         
+        # Food generation parameters (exposed for UI controls)
+        self.num_food_sources = 8
+        self.min_food_amount = 50.0
+        self.max_food_amount = 150.0
+        self.min_distance_between_food = 40.0
+        self.expiration_time = 30.0  # seconds
+        self.refresh_time = 60.0  # seconds
+        self.expiration_rate = 2.0  # food units per second
+        self.auto_generate = True
+        
     def add_food_source(self, position: Tuple[float, float], amount: float = 100.0, 
-                       max_amount: float = 100.0, depletion_rate: float = 1.0) -> FoodSource:
+                       max_amount: float = 100.0, depletion_rate: float = 1.0,
+                       expiration_time: float = None, refresh_time: float = None) -> FoodSource:
         """
         Add a new food source to the simulation.
         Args:
@@ -158,10 +274,19 @@ class FoodManager:
             amount: Initial food amount
             max_amount: Maximum food capacity
             depletion_rate: Amount removed per collection
+            expiration_time: Time before food expires (uses manager default if None)
+            refresh_time: Time before food refreshes (uses manager default if None)
         Returns:
             FoodSource: The created food source
         """
-        food_source = FoodSource(position, amount, max_amount, depletion_rate)
+        if expiration_time is None:
+            expiration_time = self.expiration_time
+        if refresh_time is None:
+            refresh_time = self.refresh_time
+            
+        food_source = FoodSource(position, amount, max_amount, depletion_rate, 
+                               expiration_time, refresh_time)
+        food_source.set_expiration_rate(self.expiration_rate)
         self._food_sources.append(food_source)
         self._add_to_spatial_grid(food_source)
         return food_source
@@ -178,7 +303,7 @@ class FoodManager:
 
     def get_nearest_food(self, position: Tuple[float, float], max_distance: float = float('inf')) -> Optional[FoodSource]:
         """
-        Find the nearest non-depleted food source to a position.
+        Find the nearest available food source to a position.
         Args:
             position: Position to search from
             max_distance: Maximum search distance
@@ -192,7 +317,7 @@ class FoodManager:
         if max_distance == float('inf'):
             # Search all food sources
             for food_source in self._food_sources:
-                if food_source.is_depleted:
+                if not food_source.is_available:
                     continue
                 
                 distance = food_source.distance_to(position)
@@ -206,7 +331,7 @@ class FoodManager:
             for cell_key in nearby_cells:
                 if cell_key in self._spatial_grid:
                     for food_source in self._spatial_grid[cell_key]:
-                        if food_source.is_depleted:
+                        if not food_source.is_available:
                             continue
                         
                         distance = food_source.distance_to(position)
@@ -218,7 +343,7 @@ class FoodManager:
 
     def get_food_in_range(self, position: Tuple[float, float], range_radius: float) -> list:
         """
-        Get all food sources within a specified range.
+        Get all available food sources within a specified range.
         Args:
             position: Center position
             range_radius: Search radius
@@ -231,21 +356,30 @@ class FoodManager:
         for cell_key in nearby_cells:
             if cell_key in self._spatial_grid:
                 for food_source in self._spatial_grid[cell_key]:
-                    if not food_source.is_depleted and food_source.is_within_range(position, range_radius):
+                    if food_source.is_available and food_source.is_within_range(position, range_radius):
                         food_in_range.append(food_source)
         
         return food_in_range
 
-    def generate_random_food(self, num_sources: int = 5, min_amount: float = 50.0, 
-                           max_amount: float = 150.0, min_distance: float = 30.0):
+    def generate_random_food(self, num_sources: int = None, min_amount: float = None, 
+                           max_amount: float = None, min_distance: float = None):
         """
         Generate random food sources across the world.
         Args:
-            num_sources: Number of food sources to generate
-            min_amount: Minimum food amount
-            max_amount: Maximum food amount
-            min_distance: Minimum distance between food sources
+            num_sources: Number of food sources to generate (uses manager default if None)
+            min_amount: Minimum food amount (uses manager default if None)
+            max_amount: Maximum food amount (uses manager default if None)
+            min_distance: Minimum distance between food sources (uses manager default if None)
         """
+        if num_sources is None:
+            num_sources = self.num_food_sources
+        if min_amount is None:
+            min_amount = self.min_food_amount
+        if max_amount is None:
+            max_amount = self.max_food_amount
+        if min_distance is None:
+            min_distance = self.min_distance_between_food
+            
         x_min, y_min, x_max, y_max = self._world_bounds
         
         for _ in range(num_sources):
@@ -273,15 +407,43 @@ class FoodManager:
                 
                 attempts += 1
 
-    def update_all(self):
-        """Update all food sources (called each simulation tick)."""
+    def clear_all_food(self):
+        """Remove all food sources from the simulation."""
+        self._food_sources.clear()
+        self._spatial_grid.clear()
+
+    def regenerate_food(self):
+        """Clear all food and generate new random food sources."""
+        self.clear_all_food()
+        self.generate_random_food()
+
+    def update_all(self, delta_time: float = 1.0/60.0):
+        """
+        Update all food sources (called each simulation tick).
+        Args:
+            delta_time: Time elapsed since last update (in seconds)
+        """
         for food_source in self._food_sources:
-            food_source.update()
+            food_source.update(delta_time)
+        
+        # Auto-generate new food if enabled and we have fewer than target
+        if self.auto_generate:
+            available_food = len([f for f in self._food_sources if f.is_available])
+            if available_food < self.num_food_sources // 2:  # Regenerate when below half
+                needed = self.num_food_sources - len(self._food_sources)
+                if needed > 0:
+                    self.generate_random_food(needed)
 
     def cleanup_depleted(self):
         """Remove permanently depleted food sources to save memory."""
-        depleted_sources = [food for food in self._food_sources if food.is_depleted and food._regeneration_rate == 0]
-        for food_source in depleted_sources:
+        sources_to_remove = []
+        for food_source in self._food_sources:
+            if (food_source.is_depleted or food_source.is_expired) and food_source._regeneration_rate == 0:
+                # Only remove if it's been expired/depleted for a long time
+                if food_source.time_until_refresh == 0:
+                    sources_to_remove.append(food_source)
+        
+        for food_source in sources_to_remove:
             self.remove_food_source(food_source)
 
     def get_statistics(self) -> dict:
@@ -291,14 +453,17 @@ class FoodManager:
             dict: Statistics including total sources, total food, etc.
         """
         total_sources = len(self._food_sources)
-        active_sources = len([f for f in self._food_sources if not f.is_depleted])
+        available_sources = len([f for f in self._food_sources if f.is_available])
+        depleted_sources = len([f for f in self._food_sources if f.is_depleted])
+        expired_sources = len([f for f in self._food_sources if f.is_expired])
         total_food = sum(f.amount for f in self._food_sources)
         total_capacity = sum(f.max_amount for f in self._food_sources)
         
         return {
             'total_sources': total_sources,
-            'active_sources': active_sources,
-            'depleted_sources': total_sources - active_sources,
+            'available_sources': available_sources,
+            'depleted_sources': depleted_sources,
+            'expired_sources': expired_sources,
             'total_food': total_food,
             'total_capacity': total_capacity,
             'utilization_percentage': (total_food / total_capacity * 100) if total_capacity > 0 else 0
