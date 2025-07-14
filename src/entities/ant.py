@@ -9,26 +9,55 @@ class AntState(Enum):
     RETURNING = auto()
     FOLLOWING_TRAIL = auto()
 
+class AntCaste(Enum):
+    WORKER = auto()
+    SOLDIER = auto()
+    SCOUT = auto()
+    NURSE = auto()
+
 class Ant:
     """
     Represents an ant entity in the simulation with position, orientation, state, and carrying status.
     """
-    def __init__(self, position: Tuple[float, float], orientation: float = 0.0, energy: float = 100.0):
+    def __init__(self, position: Tuple[float, float], orientation: float = 0.0, energy: float = 100.0, caste: AntCaste = AntCaste.WORKER):
         self._position = position  # (x, y)
         self._orientation = orientation  # Angle in degrees
         self._energy = energy
         self._carrying_food = False
         self._state = AntState.IDLE
+        self._caste = caste
         
-        # Movement parameters
+        # Movement parameters (modified by caste)
         self._velocity = 0.0  # Current speed
         self._max_velocity = 2.0  # Maximum speed
         self._acceleration = 0.5  # How quickly speed changes
         self._turn_speed = 3.0  # Degrees per frame for turning
         self._detection_radius = 20.0  # Radius for detecting food/pheromones
         
+        # Apply caste-specific modifiers
+        self._apply_caste_modifiers()
+        
         # Boundary constraints (can be set by simulation)
         self._world_bounds = (0, 0, 800, 600)  # (x_min, y_min, x_max, y_max)
+
+    def _apply_caste_modifiers(self):
+        """Apply caste-specific modifiers to ant properties."""
+        if self._caste == AntCaste.WORKER:
+            # Workers are balanced - no modifiers
+            pass
+        elif self._caste == AntCaste.SOLDIER:
+            # Soldiers are slower but stronger
+            self._max_velocity *= 0.8
+            self._detection_radius *= 1.3
+        elif self._caste == AntCaste.SCOUT:
+            # Scouts are faster with better detection
+            self._max_velocity *= 1.4
+            self._detection_radius *= 1.5
+            self._turn_speed *= 1.2
+        elif self._caste == AntCaste.NURSE:
+            # Nurses are slower but more efficient
+            self._max_velocity *= 0.9
+            self._detection_radius *= 0.8
 
     @property
     def position(self) -> Tuple[float, float]:
@@ -64,6 +93,31 @@ class Ant:
     def detection_radius(self) -> float:
         """Get the ant's detection radius."""
         return self._detection_radius
+
+    @property
+    def caste(self) -> AntCaste:
+        """Get the ant's caste."""
+        return self._caste
+
+    def get_caste_color(self) -> Tuple[int, int, int]:
+        """Get the display color for this ant's caste."""
+        caste_colors = {
+            AntCaste.WORKER: (255, 255, 0),    # Yellow
+            AntCaste.SOLDIER: (255, 0, 0),     # Red
+            AntCaste.SCOUT: (0, 255, 0),       # Green
+            AntCaste.NURSE: (255, 192, 203)    # Pink
+        }
+        return caste_colors.get(self._caste, (255, 255, 255))
+
+    def get_food_cost(self) -> float:
+        """Get the food cost to produce this ant caste."""
+        costs = {
+            AntCaste.WORKER: 10.0,
+            AntCaste.SOLDIER: 15.0,
+            AntCaste.SCOUT: 12.0,
+            AntCaste.NURSE: 8.0
+        }
+        return costs.get(self._caste, 10.0)
 
     def set_state(self, new_state: AntState) -> bool:
         """
