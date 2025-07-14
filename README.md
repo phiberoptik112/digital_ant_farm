@@ -1,4 +1,4 @@
-# Digital Ant Farm - Food System
+# Digital Ant Farm
 
 A comprehensive ant colony simulation with an advanced food system featuring time-based expiration, automatic refresh, and real-time UI controls.
 
@@ -34,17 +34,23 @@ A comprehensive ant colony simulation with an advanced food system featuring tim
 
 ## Installation
 
-1. Install dependencies:
+1. Create and activate a virtual environment:
+```bash
+python3 -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+```
+
+2. Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-2. Run the simulation:
+3. Run the simulation:
 ```bash
 python3 src/main.py
 ```
 
-3. Run the headless demonstration:
+4. Run the headless demonstration:
 ```bash
 python3 test_food_system_demo.py
 ```
@@ -132,12 +138,12 @@ python3 test_food_system_demo.py
 
 ```
 src/
-├── entities/
-│   ├── ant.py          # Ant behavior and movement
-│   ├── food.py         # Food system implementation
-│   └── pheromone.py    # Pheromone trail system
-├── ui_controls.py      # Interactive UI components
-└── main.py            # Main application with integrated systems
+├── main.py              # Main simulation loop and Pygame setup
+├── ui_controls.py       # Interactive UI components
+└── entities/
+    ├── ant.py           # Ant class with movement, state, and behavior logic
+    ├── pheromone.py     # Pheromone system with PheromoneManager
+    └── food.py          # Food source mechanics
 ```
 
 ## Development
@@ -156,4 +162,9 @@ Potential improvements include:
 - Ant nest integration for food storage
 - Advanced AI behaviors for optimal foraging
 - Network-based multi-colony simulations
+
+## Dependencies
+
+- `pygame==2.6.1` - Game engine and graphics
+- `numpy==2.3.1` - Mathematical operations and physics calculations
 
