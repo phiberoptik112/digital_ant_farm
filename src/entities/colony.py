@@ -18,14 +18,14 @@ class Colony:
         self._min_spawn_cooldown = 60  # Minimum ticks between spawns (1 second at 60 FPS)
         
         # Resource management
-        self._food_storage = 0.0
-        self._max_food_storage = 1000.0
+        self._food_storage = 54000.0 # setting this to give the colony an initial food supply of 15 hours of food
+        self._max_food_storage = 100000.0
         self._food_consumption_rate = 0.1  # Food consumed per ant per tick
         
         # Population tracking
         self._ants: List[Ant] = []
         self._ant_lifespans: Dict[int, float] = {}  # Track when each ant was created
-        self._max_ant_lifespan = 300.0  # Maximum ant lifespan in seconds
+        self._max_ant_lifespan = 1800.0  # Maximum ant lifespan in seconds
         
         # Caste population tracking
         self._caste_populations: Dict[AntCaste, int] = {
@@ -103,11 +103,13 @@ class Colony:
             Ant or None: The spawned ant, or None if spawning failed
         """
         if self.population >= self._max_population:
+            print(f"[DEBUG] Spawn failed: Colony at max population ({self._max_population})")
             return None
         
         # Check if we have enough food for this caste
         food_cost = self._get_caste_food_cost(caste)
         if self._food_storage < food_cost:
+            print(f"[DEBUG] Spawn failed: Not enough food ({self._food_storage:.1f} < {food_cost:.1f}) for {caste.name}")
             return None
         
         # Create ant at colony position with slight random offset
@@ -132,6 +134,8 @@ class Colony:
         
         # Consume food for spawning
         self._food_storage -= food_cost
+        
+        print(f"[DEBUG] Spawned {caste.name} ant (ID: {id(ant)}) at {ant_position}, food left: {self._food_storage:.1f}")
         
         return ant
 
@@ -217,6 +221,7 @@ class Colony:
             # Not enough food - some ants may die
             self._food_storage = 0
             if np.random.random() < 0.01:  # 1% chance per tick of ant death
+                print(f"[DEBUG] Starvation event: Not enough food for all ants. Attempting to remove a random ant.")
                 self._remove_random_ant()
         
         # Handle ant spawning
@@ -236,6 +241,7 @@ class Colony:
             if ant_id in self._ant_lifespans:
                 age = current_time - self._ant_lifespans[ant_id]
                 if age > self._max_ant_lifespan:
+                    print(f"[DEBUG] Ant (ID: {ant_id}, caste: {ant.caste.name}) died of old age (age: {age:.1f}s)")
                     ants_to_remove.append(ant)
         
         for ant in ants_to_remove:
@@ -257,11 +263,13 @@ class Colony:
                 self._caste_populations[ant.caste] = max(0, self._caste_populations[ant.caste] - 1)
             
             self._total_ants_died += 1
+            print(f"[DEBUG] Ant (ID: {ant_id}, caste: {ant.caste.name}) removed from colony. Total died: {self._total_ants_died}")
     
     def _remove_random_ant(self):
         """Remove a random ant from the colony (due to starvation)."""
         if self._ants:
             ant = np.random.choice(self._ants)
+            print(f"[DEBUG] Ant (ID: {id(ant)}, caste: {ant.caste.name}) died of starvation.")
             self._remove_ant(ant)
     
     def _check_development(self):
@@ -277,6 +285,7 @@ class Colony:
             self._max_food_storage += 200
             self._health = min(self._max_health, self._health + 20)
             self._spawn_rate += 0.02  # Slightly faster spawning
+            print(f"[DEBUG] Colony leveled up! New level: {self._development_level}, max pop: {self._max_population}, max food: {self._max_food_storage}, spawn rate: {self._spawn_rate:.2f}")
     
     def get_ants_in_range(self, position: Tuple[float, float], radius: float) -> List[Ant]:
         """
