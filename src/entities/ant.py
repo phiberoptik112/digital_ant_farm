@@ -69,6 +69,10 @@ class Ant:
         """Get the ant's current orientation in degrees."""
         return self._orientation
 
+    @orientation.setter
+    def orientation(self, value):
+        self._orientation = value
+
     @property
     def energy(self) -> float:
         """Get the ant's current energy level."""
@@ -241,30 +245,41 @@ class Ant:
         This method should be called each simulation tick.
         """
         if self._state == AntState.SEARCHING:
-            # Try to follow food trail pheromones
-            direction = self.sense_pheromone_gradient(PheromoneType.FOOD_TRAIL, radius=50.0)
-            if direction is not None:
+            # Try to follow food trail pheromones first
+            food_direction = self.sense_pheromone_gradient(PheromoneType.FOOD_TRAIL, radius=60.0)
+            if food_direction is not None:
                 # Convert direction vector to angle and turn towards it
-                angle = np.rad2deg(np.arctan2(direction[1], direction[0]))
+                angle = np.rad2deg(np.arctan2(food_direction[1], food_direction[0]))
                 self.turn_towards(angle)
                 self.accelerate(self._max_velocity)
                 self.move(self._velocity)
+                self.set_state(AntState.FOLLOWING_TRAIL)
             else:
-                self._random_walk()
+                # If no food trail, try to avoid home trails to explore new areas
+                home_direction = self.sense_pheromone_gradient(PheromoneType.HOME_TRAIL, radius=40.0)
+                if home_direction is not None:
+                    # Move away from home trails to explore
+                    avoid_angle = np.rad2deg(np.arctan2(-home_direction[1], -home_direction[0]))
+                    self.turn_towards(avoid_angle)
+                    self.accelerate(self._max_velocity * 0.8)
+                    self.move(self._velocity)
+                else:
+                    self._random_walk()
         elif self._state == AntState.RETURNING:
-            # Deposit food trail pheromone while returning
-            self.deposit_pheromone(PheromoneType.FOOD_TRAIL, strength=30.0, decay_rate=0.5, radius_of_influence=30.0)
-            self._return_to_nest()
+            # This state is now handled in main.py for better control
+            pass
         elif self._state == AntState.FOLLOWING_TRAIL:
             # Follow food trail pheromones
-            direction = self.sense_pheromone_gradient(PheromoneType.FOOD_TRAIL, radius=50.0)
+            direction = self.sense_pheromone_gradient(PheromoneType.FOOD_TRAIL, radius=60.0)
             if direction is not None:
                 angle = np.rad2deg(np.arctan2(direction[1], direction[0]))
                 self.turn_towards(angle)
                 self.accelerate(self._max_velocity)
                 self.move(self._velocity)
             else:
-                self._random_walk(randomness=0.1)
+                # Lost the trail, search with low randomness
+                self.set_state(AntState.SEARCHING)
+                self.random_walk(randomness=0.3)
         # Add more states as needed
 
     def _random_walk(self):
@@ -275,20 +290,47 @@ class Ant:
 
     def _return_to_nest(self):
         """
-        Move towards the nest (placeholder for now).
-        TODO: Implement actual nest-seeking behavior
+        Move towards the nest location.
+        This method assumes nest location is known (set externally).
         """
-        # For now, just move forward
-        self.accelerate(self._max_velocity)
-        self.move(self._velocity)
+        if hasattr(self, '_nest_position'):
+            nest_dir = (self._nest_position[0] - self._position[0], 
+                       self._nest_position[1] - self._position[1])
+            nest_dist = np.sqrt(nest_dir[0]**2 + nest_dir[1]**2)
+            if nest_dist > 0:
+                nest_angle = np.rad2deg(np.arctan2(nest_dir[1], nest_dir[0]))
+                self.turn_towards(nest_angle)
+                self.accelerate(self._max_velocity)
+                self.move(self._velocity)
+            else:
+                # At nest, stop moving
+                self.accelerate(0)
+        else:
+            # No nest position set, just move forward
+            self.accelerate(self._max_velocity)
+            self.move(self._velocity)
 
     def _follow_pheromone_trail(self):
         """
-        Follow pheromone trail (placeholder for now).
-        TODO: Implement actual pheromone-following behavior
+        Follow pheromone trail with improved behavior.
         """
-        # For now, just move forward with slight randomness
-        self.random_walk(randomness=0.1)
+        direction = self.sense_pheromone_gradient(PheromoneType.FOOD_TRAIL, radius=50.0)
+        if direction is not None:
+            angle = np.rad2deg(np.arctan2(direction[1], direction[0]))
+            self.turn_towards(angle)
+            self.accelerate(self._max_velocity)
+            self.move(self._velocity)
+        else:
+            # Lost the trail, search with low randomness
+            self.random_walk(randomness=0.1)
+
+    def set_nest_position(self, nest_position: Tuple[float, float]):
+        """Set the nest position for this ant."""
+        self._nest_position = nest_position
+
+    def get_nest_position(self) -> Optional[Tuple[float, float]]:
+        """Get the nest position if set."""
+        return getattr(self, '_nest_position', None)
 
     def distance_to(self, other_position: Tuple[float, float]) -> float:
         """
