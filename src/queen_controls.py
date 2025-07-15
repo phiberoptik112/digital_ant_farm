@@ -67,7 +67,7 @@ class QueenControls:
         """Set up the positions of UI elements."""
         y_offset = 40
         button_height = 35
-        spacing = 5
+        spacing = 10  # Increased spacing between elements
         
         for i, caste in enumerate(self.ant_castes.keys()):
             y_pos = self.y + y_offset + i * (button_height + spacing)
@@ -76,7 +76,7 @@ class QueenControls:
             button_rect = pygame.Rect(self.x + 10, y_pos, 120, button_height)
             self.buttons[caste] = button_rect
             
-            # Input field rectangle
+            # Input field rectangle - better alignment with button
             input_rect = pygame.Rect(self.x + 140, y_pos + 5, 60, 25)
             self.input_fields[caste]['rect'] = input_rect
     
