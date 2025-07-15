@@ -1,7 +1,7 @@
 from typing import Tuple, List, Dict, Optional
 import numpy as np
 import time
-from entities.ant import Ant, AntState
+from entities.ant import Ant, AntState, AntCaste
 from entities.pheromone import PheromoneManager, PheromoneType
 
 class Colony:
@@ -26,6 +26,14 @@ class Colony:
         self._ants: List[Ant] = []
         self._ant_lifespans: Dict[int, float] = {}  # Track when each ant was created
         self._max_ant_lifespan = 300.0  # Maximum ant lifespan in seconds
+        
+        # Caste population tracking
+        self._caste_populations: Dict[AntCaste, int] = {
+            AntCaste.WORKER: 0,
+            AntCaste.SOLDIER: 0,
+            AntCaste.SCOUT: 0,
+            AntCaste.NURSE: 0
+        }
         
         # Statistics
         self._total_food_collected = 0.0
@@ -86,16 +94,20 @@ class Colony:
         """Set the pheromone manager for this colony."""
         self._pheromone_manager = pheromone_manager
     
-    def spawn_ant(self) -> Optional[Ant]:
+    def spawn_ant(self, caste: AntCaste = AntCaste.WORKER) -> Optional[Ant]:
         """
-        Spawn a new ant at the colony position.
+        Spawn a new ant of a specific caste at the colony position.
+        Args:
+            caste: The caste of ant to spawn
         Returns:
             Ant or None: The spawned ant, or None if spawning failed
         """
         if self.population >= self._max_population:
             return None
         
-        if self._food_storage < 10.0:  # Need food to spawn
+        # Check if we have enough food for this caste
+        food_cost = self._get_caste_food_cost(caste)
+        if self._food_storage < food_cost:
             return None
         
         # Create ant at colony position with slight random offset
@@ -103,7 +115,7 @@ class Colony:
         offset_y = np.random.uniform(-self._radius * 0.5, self._radius * 0.5)
         ant_position = (self._position[0] + offset_x, self._position[1] + offset_y)
         
-        ant = Ant(position=ant_position, orientation=np.random.uniform(0, 360))
+        ant = Ant(position=ant_position, orientation=np.random.uniform(0, 360), caste=caste)
         ant.set_state(AntState.SEARCHING)
         
         # Associate with pheromone manager if available
@@ -115,10 +127,64 @@ class Colony:
         self._ant_lifespans[id(ant)] = time.time()
         self._total_ants_spawned += 1
         
+        # Update caste population
+        self._caste_populations[caste] += 1
+        
         # Consume food for spawning
-        self._food_storage -= 10.0
+        self._food_storage -= food_cost
         
         return ant
+
+    def spawn_multiple_ants(self, caste: AntCaste, count: int) -> List[Ant]:
+        """
+        Spawn multiple ants of a specific caste.
+        Args:
+            caste: The caste of ants to spawn
+            count: Number of ants to spawn
+        Returns:
+            List[Ant]: List of successfully spawned ants
+        """
+        spawned_ants = []
+        for _ in range(count):
+            ant = self.spawn_ant(caste)
+            if ant:
+                spawned_ants.append(ant)
+            else:
+                break  # Stop if we can't spawn more
+        return spawned_ants
+
+    def _get_caste_food_cost(self, caste: AntCaste) -> float:
+        """Get the food cost for spawning a specific caste."""
+        costs = {
+            AntCaste.WORKER: 10.0,
+            AntCaste.SOLDIER: 15.0,
+            AntCaste.SCOUT: 12.0,
+            AntCaste.NURSE: 8.0
+        }
+        return costs.get(caste, 10.0)
+
+    def can_spawn_caste(self, caste: AntCaste, count: int = 1) -> bool:
+        """
+        Check if we can spawn a specific number of ants of a given caste.
+        Args:
+            caste: The caste to check
+            count: Number of ants to spawn
+        Returns:
+            bool: True if we can spawn the requested ants
+        """
+        if self.population + count > self._max_population:
+            return False
+        
+        food_cost = self._get_caste_food_cost(caste) * count
+        return self._food_storage >= food_cost
+
+    def get_caste_population(self, caste: AntCaste) -> int:
+        """Get the current population of a specific caste."""
+        return self._caste_populations.get(caste, 0)
+
+    def get_caste_populations(self) -> Dict[AntCaste, int]:
+        """Get all caste populations."""
+        return self._caste_populations.copy()
     
     def receive_food(self, amount: float) -> float:
         """
@@ -185,6 +251,11 @@ class Colony:
             ant_id = id(ant)
             if ant_id in self._ant_lifespans:
                 del self._ant_lifespans[ant_id]
+            
+            # Update caste population tracking
+            if ant.caste in self._caste_populations:
+                self._caste_populations[ant.caste] = max(0, self._caste_populations[ant.caste] - 1)
+            
             self._total_ants_died += 1
     
     def _remove_random_ant(self):
@@ -277,7 +348,8 @@ class Colony:
             'survival_rate': survival_rate,
             'average_ant_age': avg_ant_age,
             'spawn_rate': self._spawn_rate,
-            'food_consumption_rate': self._food_consumption_rate
+            'food_consumption_rate': self._food_consumption_rate,
+            'caste_populations': self._caste_populations.copy()
         }
     
     def get_ants(self) -> List[Ant]:
@@ -289,6 +361,9 @@ class Colony:
         if ant not in self._ants and self.population < self._max_population:
             self._ants.append(ant)
             self._ant_lifespans[id(ant)] = time.time()
+            # Update caste population tracking
+            if ant.caste in self._caste_populations:
+                self._caste_populations[ant.caste] += 1
             if self._pheromone_manager:
                 ant.set_pheromone_manager(self._pheromone_manager)
     

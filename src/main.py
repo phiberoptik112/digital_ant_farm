@@ -1,10 +1,11 @@
 import pygame
 import numpy as np
 import time
-from entities.ant import Ant, AntState
+from entities.ant import Ant, AntState, AntCaste
 from entities.pheromone import PheromoneManager, PheromoneType
 from entities.food import FoodManager
 from entities.colony import Colony
+from queen_controls import QueenControls
 from ui_controls import FoodSystemUI
 
 pygame.init()
@@ -13,7 +14,7 @@ pygame.init()
 SCREEN_WIDTH = 1200
 SCREEN_HEIGHT = 800
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption('Digital Ant Farm - Enhanced Pheromone & Food System')
+pygame.display.set_caption('Digital Ant Farm - Enhanced Colony & Pheromone System')
 clock = pygame.time.Clock()
 running = True
 
@@ -29,12 +30,17 @@ BROWN = (139, 69, 19)
 # --- Simulation Setup ---
 pheromone_manager = PheromoneManager(world_bounds=(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT))
 food_manager = FoodManager(world_bounds=(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT))
-colony = Colony(position=(100, 100), max_population=20, spawn_rate=0.05)
+
+# Create a colony at the center
+colony = Colony(position=(400, 300), max_population=50, spawn_rate=0.05)
 colony.set_pheromone_manager(pheromone_manager)
 colony.receive_food(100.0)
 
-# Nest location
-nest_pos = (100, 100)
+# Create queen controls UI
+queen_controls = QueenControls(x=850, y=50, width=350, height=500)
+
+# Nest location (for compatibility with existing ant logic)
+nest_pos = colony.position
 nest_radius = 30
 
 # Create food sources (static, for enhanced pheromone demo)
@@ -43,23 +49,6 @@ food_sources = [
     {"pos": (700, 400), "radius": 20, "active": True},
     {"pos": (300, 450), "radius": 30, "active": True}
 ]
-
-# Create ants at nest location
-ants = []
-for i in range(8):
-    angle = (i / 8) * 360
-    offset_x = np.cos(np.deg2rad(angle)) * 40
-    offset_y = np.sin(np.deg2rad(angle)) * 40
-    pos = (nest_pos[0] + offset_x, nest_pos[1] + offset_y)
-    ant = Ant(position=pos, orientation=np.random.uniform(0, 360))
-    ant.set_state(AntState.SEARCHING)
-    ant.set_pheromone_manager(pheromone_manager)
-    ant.set_world_bounds((0, 0, SCREEN_WIDTH, SCREEN_HEIGHT))
-    ant.set_nest_position(nest_pos)
-    ants.append(ant)
-
-# UI Setup
-food_ui = FoodSystemUI(850, 50, food_manager)
 
 # Font for information display
 font = pygame.font.Font(None, 24)
@@ -89,19 +78,17 @@ while running:
             elif event.key == pygame.K_SPACE:
                 # Reset simulation (reset ants to nest, clear pheromones)
                 pheromone_manager.clear_all()
-                for ant in ants:
-                    ant.set_position((nest_pos[0] + np.random.uniform(-20, 20), 
-                                    nest_pos[1] + np.random.uniform(-20, 20)))
-                    ant.set_state(AntState.SEARCHING)
-                    ant.set_carrying_food(False)
-                    ant.set_nest_position(nest_pos)
+                colony.reset_ants_to_nest()
             elif event.key == pygame.K_TAB:
-                food_ui.toggle_visibility()
+                # Toggle between queen controls and food controls
+                pass  # TODO: Implement toggle between UI modes
             elif event.key == pygame.K_r:
                 food_manager.regenerate_food()
             elif event.key == pygame.K_c:
                 food_manager.clear_all_food()
-        food_ui.handle_event(event)
+        else:
+            # Handle queen controls events
+            queen_controls.handle_event(event, colony)
 
     # Clear screen
     screen.fill((30, 30, 30))
@@ -112,7 +99,7 @@ while running:
     colony.update()
 
     # --- Ant update and interaction logic ---
-    for ant in ants:
+    for ant in colony.get_ants():
         # Deposit exploration pheromones periodically while searching
         if ant.state == AntState.SEARCHING and frame_count % 30 == 0:
             ant.deposit_pheromone(PheromoneType.HOME_TRAIL, strength=20.0, 
@@ -153,15 +140,6 @@ while running:
                         target_angle = np.rad2deg(np.arctan2(dy, dx))
                         ant.orientation = target_angle
 
-        # Check for nest collision when returning (static nest)
-        if ant.state == AntState.RETURNING and ant.carrying_food:
-            dist = np.sqrt((ant.position[0] - nest_pos[0])**2 + 
-                         (ant.position[1] - nest_pos[1])**2)
-            if dist <= nest_radius:
-                ant.set_carrying_food(False)
-                ant.set_state(AntState.SEARCHING)
-                continue
-
         # Check for nest collision when returning (colony)
         if ant.state == AntState.RETURNING and ant.carrying_food:
             dx = colony.position[0] - ant.position[0]
@@ -176,7 +154,7 @@ while running:
         # Update ant behavior
         if ant.state == AntState.RETURNING:
             # Move towards nest and deposit food trail pheromones
-            nest_dir = (nest_pos[0] - ant.position[0], nest_pos[1] - ant.position[1])
+            nest_dir = (colony.position[0] - ant.position[0], colony.position[1] - ant.position[1])
             nest_dist = np.sqrt(nest_dir[0]**2 + nest_dir[1]**2)
             if nest_dist > 0:
                 nest_angle = np.rad2deg(np.arctan2(nest_dir[1], nest_dir[0]))
@@ -243,42 +221,55 @@ while running:
             pygame.draw.circle(s, gradient_color, (radius, radius), r)
         screen.blit(s, (x - radius, y - radius))
 
-    # Draw nest (static nest)
-    pygame.draw.circle(screen, BROWN, (int(nest_pos[0]), int(nest_pos[1])), nest_radius)
-    pygame.draw.circle(screen, (160, 82, 45), (int(nest_pos[0]), int(nest_pos[1])), nest_radius, 3)
-
-    # Draw colony (for food_manager system, at same nest position for now)
+    # Draw colony
     colony_x, colony_y = int(colony.position[0]), int(colony.position[1])
     pygame.draw.circle(screen, (139, 69, 19), (colony_x, colony_y), int(colony.radius), 0)
     pygame.draw.circle(screen, (160, 82, 45), (colony_x, colony_y), int(colony.radius), 3)
 
-    # Draw ants with enhanced visualization
-    for ant in ants:
+    # Draw ants from the colony with caste-specific colors
+    for ant in colony.get_ants():
         x, y = int(ant.position[0]), int(ant.position[1])
-        # Different colors based on state
-        if ant.carrying_food:
-            ant_color = (255, 165, 0)  # Orange when carrying food
-        elif ant.state == AntState.RETURNING:
-            ant_color = (255, 100, 100)  # Red when returning
-        else:
-            ant_color = (255, 255, 0)  # Yellow when searching
-        pygame.draw.circle(screen, ant_color, (x, y), 6)
+        ant_color = ant.get_caste_color()
+        pygame.draw.circle(screen, ant_color, (x, y), 5)
+        
         # Draw orientation as a line
         rad = np.deg2rad(ant.orientation)
-        end_x = int(x + 12 * np.cos(rad))
-        end_y = int(y + 12 * np.sin(rad))
-        pygame.draw.line(screen, (255, 255, 255), (x, y), (end_x, end_y), 2)
-        if ant.state == AntState.SEARCHING:
-            pygame.draw.circle(screen, (100, 100, 100), (x, y), int(ant._detection_radius), 1)
+        end_x = int(x + 10 * np.cos(rad))
+        end_y = int(y + 10 * np.sin(rad))
+        # Use a darker version of the caste color for the orientation line
+        darker_color = tuple(max(0, c - 50) for c in ant_color)
+        pygame.draw.line(screen, darker_color, (x, y), (end_x, end_y), 2)
 
-    # Update and draw UI
-    food_ui.update()
-    food_ui.draw(screen)
+    # Display colony statistics
+    stats = colony.get_statistics()
+    text_lines = [
+        f"Population: {stats['population']}/{stats['max_population']}",
+        f"Food: {stats['food_storage']:.1f}/{stats['max_food_storage']:.1f}",
+        f"Level: {stats['development_level']}",
+        f"Total Food: {stats['total_food_collected']:.1f}",
+        "",
+        "Ant Populations:",
+        f"Workers: {stats['caste_populations'].get(AntCaste.WORKER, 0)}",
+        f"Soldiers: {stats['caste_populations'].get(AntCaste.SOLDIER, 0)}",
+        f"Scouts: {stats['caste_populations'].get(AntCaste.SCOUT, 0)}",
+        f"Nurses: {stats['caste_populations'].get(AntCaste.NURSE, 0)}",
+        "",
+        f"Food Sources: {len(food_manager._food_sources) + len(food_sources)}",
+        f"Pheromones: {len(pheromone_manager._pheromones)}",
+        f"FPS: {clock.get_fps():.1f}"
+    ]
+    
+    for i, line in enumerate(text_lines):
+        if line:  # Skip empty lines
+            text_surface = font.render(line, True, (255, 255, 255))
+            screen.blit(text_surface, (10, 10 + i * 25))
+
+    # Draw the queen controls UI
+    queen_controls.draw(screen, colony)
 
     # Draw instructions
     instructions = [
         "SPACE - Reset Simulation",
-        "TAB - Toggle Food Controls",
         "R - Regenerate Food",
         "C - Clear All Food",
         "ESC - Exit",
@@ -286,19 +277,7 @@ while running:
     ]
     for i, instruction in enumerate(instructions):
         text = font.render(instruction, True, (200, 200, 200))
-        screen.blit(text, (10, 10 + i * 25))
-
-    # Draw simulation info
-    info_text = [
-        f"Ants: {len(ants)}",
-        f"Food Sources: {len(food_manager._food_sources) + len(food_sources)}",
-        f"Pheromones: {len(pheromone_manager._pheromones)}",
-        f"Colony Food: {colony.get_statistics()['food_storage']:.1f}",
-        f"FPS: {clock.get_fps():.1f}"
-    ]
-    for i, text in enumerate(info_text):
-        info_surface = font.render(text, True, (200, 200, 200))
-        screen.blit(info_surface, (10, 180 + i * 25))
+        screen.blit(text, (10, 350 + i * 25))
 
     pygame.display.flip()
     clock.tick(60)
