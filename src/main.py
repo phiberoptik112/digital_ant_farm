@@ -259,15 +259,19 @@ while running:
         f"FPS: {clock.get_fps():.1f}"
     ]
     
+    # Calculate statistics display area
+    stats_y_start = 10
+    stats_line_height = 22  # Reduced line height for better spacing
+    
     for i, line in enumerate(text_lines):
         if line:  # Skip empty lines
             text_surface = font.render(line, True, (255, 255, 255))
-            screen.blit(text_surface, (10, 10 + i * 25))
+            screen.blit(text_surface, (10, stats_y_start + i * stats_line_height))
 
     # Draw the queen controls UI
     queen_controls.draw(screen, colony)
 
-    # Draw instructions
+    # Draw instructions with proper spacing
     instructions = [
         "SPACE - Reset Simulation",
         "R - Regenerate Food",
@@ -275,9 +279,15 @@ while running:
         "ESC - Exit",
         "Watch the green pheromone trails!"
     ]
+    
+    # Calculate instructions position to avoid overlap with statistics
+    # Statistics end at approximately: stats_y_start + len(text_lines) * stats_line_height
+    stats_end_y = stats_y_start + len(text_lines) * stats_line_height
+    instructions_y_start = stats_end_y + 40  # Add 40px buffer
+    
     for i, instruction in enumerate(instructions):
         text = font.render(instruction, True, (200, 200, 200))
-        screen.blit(text, (10, 350 + i * 25))
+        screen.blit(text, (10, instructions_y_start + i * 22))
 
     pygame.display.flip()
     clock.tick(60)

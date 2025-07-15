@@ -87,9 +87,9 @@ class UISlider:
         knob_color = self.knob_hover_color if knob_rect.collidepoint(mouse_pos) else self.knob_color
         pygame.draw.rect(screen, knob_color, knob_rect)
         
-        # Draw label and value
+        # Draw label and value with proper spacing
         label_text = self.font.render(f"{self.label}: {self.val:.1f}", True, self.text_color)
-        screen.blit(label_text, (self.rect.x, self.rect.y - 25))
+        screen.blit(label_text, (self.rect.x, self.rect.y - 28))
 
 
 class UIButton:
@@ -227,8 +227,8 @@ class FoodSystemUI:
         # Create UI components
         self.components = []
         
-        # Panel background
-        self.panel_rect = pygame.Rect(x - 10, y - 10, 280, 400)
+        # Panel background - increased height to accommodate better spacing
+        self.panel_rect = pygame.Rect(x - 10, y - 10, 280, 450)
         
         # Title
         self.title_font = pygame.font.Font(None, 28)
@@ -238,6 +238,7 @@ class FoodSystemUI:
         slider_width = 200
         slider_height = 20
         current_y = y + 30
+        slider_spacing = 55  # Increased spacing between sliders
         
         # Number of food sources
         self.num_sources_slider = UISlider(
@@ -247,7 +248,7 @@ class FoodSystemUI:
             lambda val: setattr(food_manager, 'num_food_sources', int(val))
         )
         self.components.append(self.num_sources_slider)
-        current_y += 50
+        current_y += slider_spacing
         
         # Food amount range
         self.min_amount_slider = UISlider(
@@ -257,7 +258,7 @@ class FoodSystemUI:
             lambda val: setattr(food_manager, 'min_food_amount', val)
         )
         self.components.append(self.min_amount_slider)
-        current_y += 50
+        current_y += slider_spacing
         
         self.max_amount_slider = UISlider(
             x, current_y, slider_width, slider_height,
@@ -266,7 +267,7 @@ class FoodSystemUI:
             lambda val: setattr(food_manager, 'max_food_amount', val)
         )
         self.components.append(self.max_amount_slider)
-        current_y += 50
+        current_y += slider_spacing
         
         # Expiration time
         self.expiration_time_slider = UISlider(
@@ -276,7 +277,7 @@ class FoodSystemUI:
             lambda val: setattr(food_manager, 'expiration_time', val)
         )
         self.components.append(self.expiration_time_slider)
-        current_y += 50
+        current_y += slider_spacing
         
         # Refresh time
         self.refresh_time_slider = UISlider(
@@ -286,7 +287,7 @@ class FoodSystemUI:
             lambda val: setattr(food_manager, 'refresh_time', val)
         )
         self.components.append(self.refresh_time_slider)
-        current_y += 50
+        current_y += slider_spacing
         
         # Expiration rate
         self.expiration_rate_slider = UISlider(
@@ -296,7 +297,7 @@ class FoodSystemUI:
             lambda val: setattr(food_manager, 'expiration_rate', val)
         )
         self.components.append(self.expiration_rate_slider)
-        current_y += 50
+        current_y += slider_spacing
         
         # Auto-generate checkbox
         self.auto_generate_checkbox = UICheckbox(
@@ -304,11 +305,12 @@ class FoodSystemUI:
             lambda val: setattr(food_manager, 'auto_generate', val)
         )
         self.components.append(self.auto_generate_checkbox)
-        current_y += 40
+        current_y += 45  # Increased spacing for checkbox
         
         # Buttons
         button_width = 120
         button_height = 30
+        button_spacing = 10  # Space between buttons
         
         self.regenerate_button = UIButton(
             x, current_y, button_width, button_height,
@@ -318,14 +320,14 @@ class FoodSystemUI:
         self.components.append(self.regenerate_button)
         
         self.clear_button = UIButton(
-            x + button_width + 10, current_y, button_width, button_height,
+            x + button_width + button_spacing, current_y, button_width, button_height,
             "Clear All Food",
             lambda: food_manager.clear_all_food()
         )
         self.components.append(self.clear_button)
         
         # Statistics display area
-        self.stats_y = current_y + 50
+        self.stats_y = current_y + 60  # Increased spacing before stats
     
     def handle_event(self, event: pygame.event.Event) -> bool:
         """Handle pygame events. Returns True if event was handled."""
