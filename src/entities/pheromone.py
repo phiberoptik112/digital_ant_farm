@@ -2,6 +2,7 @@ from enum import Enum, auto
 from typing import Tuple, Optional, List, Dict
 import numpy as np
 import time
+import math
 
 class PheromoneType(Enum):
     """Types of pheromones that ants can deposit."""
@@ -14,7 +15,9 @@ class Pheromone:
     Represents a single pheromone deposit with position, type, strength, and decay.
     """
     def __init__(self, position: Tuple[float, float], pheromone_type: PheromoneType, 
-                 strength: float = 100.0, decay_rate: float = 1.0, radius_of_influence: float = 20.0):
+                 strength: float = 100.0, decay_rate: float = 1.0, radius_of_influence: float = 20.0,
+                 can_spread: bool = True, spread_radius: float = None, spread_strength_factor: float = 0.4,
+                 spread_delay: float = 2.0, is_spread_deposit: bool = False):
         self._position = position  # (x, y)
         self._type = pheromone_type
         self._strength = strength
@@ -22,6 +25,14 @@ class Pheromone:
         self._decay_rate = decay_rate  # Strength lost per tick
         self._creation_time = time.time()
         self._radius_of_influence = radius_of_influence  # Radius where this pheromone affects ants
+        
+        # Spreading properties
+        self._can_spread = can_spread  # Whether this pheromone can spread
+        self._spread_radius = spread_radius if spread_radius is not None else radius_of_influence * 2.0  # How far it spreads
+        self._spread_strength_factor = spread_strength_factor  # Fraction of original strength for spread deposits
+        self._spread_delay = spread_delay  # How long to wait before spreading (seconds)
+        self._has_spread = False  # Whether this pheromone has already spread
+        self._is_spread_deposit = is_spread_deposit  # Whether this is a spread deposit (can't spread further)
         
     @property
     def position(self) -> Tuple[float, float]:
@@ -52,6 +63,41 @@ class Pheromone:
     def age(self) -> float:
         """Get the age of the pheromone in seconds."""
         return time.time() - self._creation_time
+    
+    @property
+    def can_spread(self) -> bool:
+        """Check if this pheromone can spread."""
+        return self._can_spread and not self._is_spread_deposit
+    
+    @property
+    def should_spread(self) -> bool:
+        """Check if this pheromone should spread now."""
+        return (self._can_spread and not self._has_spread and 
+                not self._is_spread_deposit and self.age >= self._spread_delay)
+    
+    @property
+    def spread_radius(self) -> float:
+        """Get the radius within which this pheromone will spread."""
+        return self._spread_radius
+    
+    @property
+    def spread_strength_factor(self) -> float:
+        """Get the strength factor for spread deposits."""
+        return self._spread_strength_factor
+    
+    @property
+    def has_spread(self) -> bool:
+        """Check if this pheromone has already spread."""
+        return self._has_spread
+    
+    @property
+    def is_spread_deposit(self) -> bool:
+        """Check if this is a spread deposit."""
+        return self._is_spread_deposit
+    
+    def mark_as_spread(self):
+        """Mark this pheromone as having spread."""
+        self._has_spread = True
     
     def update(self) -> bool:
         """
@@ -109,7 +155,8 @@ class Pheromone:
         return self._strength * influence
     
     def __repr__(self):
-        return f"Pheromone(pos={self._position}, type={self._type.name}, strength={self._strength:.1f})"
+        spread_info = f", spread={self._has_spread}" if self._can_spread else ""
+        return f"Pheromone(pos={self._position}, type={self._type.name}, strength={self._strength:.1f}{spread_info})"
 
 
 class PheromoneManager:
@@ -123,7 +170,9 @@ class PheromoneManager:
         self._grid_size = 40  # Size of each grid cell (should be >= max pheromone radius)
         
     def add_pheromone(self, position: Tuple[float, float], pheromone_type: PheromoneType, 
-                     strength: float = 100.0, decay_rate: float = 1.0, radius_of_influence: float = 20.0) -> Pheromone:
+                     strength: float = 100.0, decay_rate: float = 1.0, radius_of_influence: float = 20.0,
+                     can_spread: bool = True, spread_radius: float = None, spread_strength_factor: float = 0.4,
+                     spread_delay: float = 2.0, is_spread_deposit: bool = False) -> Pheromone:
         """
         Add a new pheromone to the simulation.
         Args:
@@ -132,13 +181,60 @@ class PheromoneManager:
             strength: Initial strength
             decay_rate: Decay rate per tick
             radius_of_influence: Influence radius
+            can_spread: Whether this pheromone can spread
+            spread_radius: How far the pheromone spreads (defaults to 2x radius_of_influence)
+            spread_strength_factor: Fraction of original strength for spread deposits
+            spread_delay: How long to wait before spreading (seconds)
+            is_spread_deposit: Whether this is a spread deposit
         Returns:
             Pheromone: The created pheromone
         """
-        pheromone = Pheromone(position, pheromone_type, strength, decay_rate, radius_of_influence)
+        pheromone = Pheromone(position, pheromone_type, strength, decay_rate, radius_of_influence,
+                            can_spread, spread_radius, spread_strength_factor, spread_delay, is_spread_deposit)
         self._pheromones.append(pheromone)
         self._add_to_spatial_grid(pheromone)
         return pheromone
+    
+    def _create_spread_deposits(self, original_pheromone: Pheromone):
+        """
+        Create spread deposits around an original pheromone.
+        Args:
+            original_pheromone: The pheromone to spread from
+        """
+        if not original_pheromone.should_spread:
+            return
+        
+        # Calculate spread strength
+        spread_strength = original_pheromone.max_strength * original_pheromone.spread_strength_factor
+        
+        # Create spread deposits in a circle around the original
+        num_deposits = 8  # Number of spread deposits to create
+        spread_radius = original_pheromone.spread_radius
+        
+        for i in range(num_deposits):
+            angle = (2 * math.pi * i) / num_deposits
+            
+            # Calculate position for spread deposit
+            spread_x = original_pheromone.position[0] + math.cos(angle) * spread_radius
+            spread_y = original_pheromone.position[1] + math.sin(angle) * spread_radius
+            
+            # Check if position is within world bounds
+            if (self._world_bounds[0] <= spread_x <= self._world_bounds[2] and
+                self._world_bounds[1] <= spread_y <= self._world_bounds[3]):
+                
+                # Create spread deposit with same decay rate as original
+                self.add_pheromone(
+                    position=(spread_x, spread_y),
+                    pheromone_type=original_pheromone.type,
+                    strength=spread_strength,
+                    decay_rate=original_pheromone._decay_rate,  # Same decay rate
+                    radius_of_influence=original_pheromone.radius_of_influence * 0.8,  # Slightly smaller radius
+                    can_spread=False,  # Spread deposits don't spread further
+                    is_spread_deposit=True
+                )
+        
+        # Mark original as having spread
+        original_pheromone.mark_as_spread()
     
     def remove_pheromone(self, pheromone: Pheromone):
         """
@@ -235,14 +331,24 @@ class PheromoneManager:
     
     def update_all(self):
         """
-        Update all pheromones (decay and remove depleted ones).
+        Update all pheromones (decay, spread, and remove depleted ones).
         Called each simulation tick.
         """
         pheromones_to_remove = []
+        pheromones_to_spread = []
         
         for pheromone in self._pheromones:
+            # Check if pheromone should spread
+            if pheromone.should_spread:
+                pheromones_to_spread.append(pheromone)
+            
+            # Update pheromone (decay)
             if pheromone.update():  # Returns True if should be removed
                 pheromones_to_remove.append(pheromone)
+        
+        # Create spread deposits
+        for pheromone in pheromones_to_spread:
+            self._create_spread_deposits(pheromone)
         
         # Remove depleted pheromones
         for pheromone in pheromones_to_remove:
@@ -252,22 +358,31 @@ class PheromoneManager:
         """
         Get statistics about all pheromones.
         Returns:
-            dict: Statistics including total pheromones, types, etc.
+            dict: Statistics including total pheromones, types, spread info, etc.
         """
         total_pheromones = len(self._pheromones)
         type_counts = {}
         total_strength = 0.0
+        spread_deposits = 0
+        original_deposits = 0
         
         for pheromone in self._pheromones:
             pheromone_type = pheromone.type.name
             type_counts[pheromone_type] = type_counts.get(pheromone_type, 0) + 1
             total_strength += pheromone.strength
+            
+            if pheromone.is_spread_deposit:
+                spread_deposits += 1
+            else:
+                original_deposits += 1
         
         return {
             'total_pheromones': total_pheromones,
             'type_counts': type_counts,
             'total_strength': total_strength,
-            'average_strength': total_strength / total_pheromones if total_pheromones > 0 else 0
+            'average_strength': total_strength / total_pheromones if total_pheromones > 0 else 0,
+            'spread_deposits': spread_deposits,
+            'original_deposits': original_deposits
         }
     
     def clear_all(self):
