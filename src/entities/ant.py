@@ -228,10 +228,13 @@ class Ant:
         """Associate a PheromoneManager with this ant."""
         self._pheromone_manager = pheromone_manager
 
-    def deposit_pheromone(self, pheromone_type: PheromoneType, strength: float = 50.0, decay_rate: float = 1.0, radius_of_influence: float = 20.0):
+    def deposit_pheromone(self, pheromone_type: PheromoneType, strength: float = 50.0, decay_rate: float = 1.0, radius_of_influence: float = 20.0,
+                         can_spread: bool = True, spread_radius: float = None, spread_strength_factor: float = 0.4,
+                         spread_delay: float = 2.0):
         """Deposit a pheromone at the ant's current position."""
         if hasattr(self, '_pheromone_manager') and self._pheromone_manager:
-            self._pheromone_manager.add_pheromone(self._position, pheromone_type, strength, decay_rate, radius_of_influence)
+            self._pheromone_manager.add_pheromone(self._position, pheromone_type, strength, decay_rate, radius_of_influence,
+                                                can_spread, spread_radius, spread_strength_factor, spread_delay)
 
     def sense_pheromone_gradient(self, pheromone_type: PheromoneType, radius: float = 50.0):
         """Sense the pheromone gradient and return a direction vector (dx, dy) or None."""
