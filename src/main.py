@@ -98,12 +98,25 @@ while running:
     pheromone_manager.update_all()
     colony.update()
 
+    # Get behavior parameters from queen controls
+    behavior_params = queen_controls.get_behavior_params()
+    
     # --- Ant update and interaction logic ---
     for ant in colony.get_ants():
+        # Apply behavior parameters to ant
+        ant._max_velocity = behavior_params['ant_max_velocity']
+        ant._acceleration = behavior_params['ant_acceleration']
+        ant._turn_speed = behavior_params['ant_turn_speed']
+        ant._detection_radius = behavior_params['ant_detection_radius']
+        ant._food_sensing_range = behavior_params['food_sensing_range']
+        ant._home_sensing_range = behavior_params['home_sensing_range']
+        
         # Deposit exploration pheromones periodically while searching
-        if ant.state == AntState.SEARCHING and frame_count % 30 == 0:
-            ant.deposit_pheromone(PheromoneType.HOME_TRAIL, strength=20.0, 
-                                decay_rate=0.3, radius_of_influence=15.0)
+        if ant.state == AntState.SEARCHING and frame_count % int(behavior_params['pheromone_deposit_interval']) == 0:
+            ant.deposit_pheromone(PheromoneType.HOME_TRAIL, 
+                                strength=behavior_params['home_trail_strength'], 
+                                decay_rate=behavior_params['home_trail_decay'], 
+                                radius_of_influence=behavior_params['home_trail_radius'])
 
         # Check for food collision (static food sources)
         if ant.state == AntState.SEARCHING and not ant.carrying_food:
@@ -162,8 +175,10 @@ while running:
                 ant.accelerate(ant._max_velocity)
                 ant.move(ant._velocity)
             # Deposit food trail pheromones
-            ant.deposit_pheromone(PheromoneType.FOOD_TRAIL, strength=40.0, 
-                                decay_rate=0.5, radius_of_influence=25.0)
+            ant.deposit_pheromone(PheromoneType.FOOD_TRAIL, 
+                                strength=behavior_params['food_trail_strength'], 
+                                decay_rate=behavior_params['food_trail_decay'], 
+                                radius_of_influence=behavior_params['food_trail_radius'])
         else:
             ant.step()
 

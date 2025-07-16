@@ -2,13 +2,15 @@ import pygame
 from typing import Dict, Optional, Callable
 from entities.ant import AntCaste
 from entities.colony import Colony
+from ui_controls import UISlider
 
 class QueenControls:
     """
-    UI component for queen controls to produce different ant castes.
+    UI component for queen controls with tabbed interface.
+    Includes ant production controls and colony behavior tuning.
     """
     
-    def __init__(self, x: int, y: int, width: int = 250, height: int = 300):
+    def __init__(self, x: int, y: int, width: int = 350, height: int = 400):
         self.x = x
         self.y = y
         self.width = width
@@ -16,7 +18,12 @@ class QueenControls:
         
         # UI elements
         self.font = pygame.font.Font(None, 24)
-        self.small_font = pygame.font.Font(None, 20)
+        self.small_font = pygame.font.Font(None, 18)
+        
+        # Tab system
+        self.tabs = ["Ant Production", "Colony Behavior"]
+        self.active_tab = 0
+        self.tab_height = 30
         
         # Define ant castes with their properties
         self.ant_castes = {
@@ -46,7 +53,7 @@ class QueenControls:
             }
         }
         
-        # Input fields for each caste
+        # Input fields for each caste (for ant production tab)
         self.input_fields = {}
         self.input_values = {}
         self.active_input = None
@@ -61,22 +68,93 @@ class QueenControls:
         
         # Buttons for each caste
         self.buttons = {}
+        
+        # Colony behavior parameters and sliders
+        self.behavior_params = {
+            'pheromone_deposit_interval': 30,
+            'home_trail_strength': 20.0,
+            'food_trail_strength': 40.0,
+            'home_trail_decay': 0.3,
+            'food_trail_decay': 0.5,
+            'home_trail_radius': 15.0,
+            'food_trail_radius': 25.0,
+            'ant_max_velocity': 2.0,
+            'ant_acceleration': 0.5,
+            'ant_turn_speed': 3.0,
+            'ant_detection_radius': 20.0,
+            'food_sensing_range': 60.0,
+            'home_sensing_range': 40.0
+        }
+        
+        # Create sliders for behavior parameters
+        self.behavior_sliders = {}
+        self._create_behavior_sliders()
+        
         self._setup_ui_elements()
+        
+    def _create_behavior_sliders(self):
+        """Create sliders for behavior parameters."""
+        slider_configs = [
+            ('pheromone_deposit_interval', 'Pheromone Deposit Interval', 10, 120, 1),
+            ('home_trail_strength', 'Home Trail Strength', 5.0, 100.0, 1.0),
+            ('food_trail_strength', 'Food Trail Strength', 10.0, 100.0, 1.0),
+            ('home_trail_decay', 'Home Trail Decay Rate', 0.1, 2.0, 0.1),
+            ('food_trail_decay', 'Food Trail Decay Rate', 0.1, 2.0, 0.1),
+            ('home_trail_radius', 'Home Trail Radius', 5.0, 50.0, 1.0),
+            ('food_trail_radius', 'Food Trail Radius', 10.0, 50.0, 1.0),
+            ('ant_max_velocity', 'Ant Max Velocity', 0.5, 5.0, 0.1),
+            ('ant_acceleration', 'Ant Acceleration', 0.1, 2.0, 0.1),
+            ('ant_turn_speed', 'Ant Turn Speed', 1.0, 10.0, 0.1),
+            ('ant_detection_radius', 'Ant Detection Radius', 10.0, 50.0, 1.0),
+            ('food_sensing_range', 'Food Sensing Range', 20.0, 100.0, 1.0),
+            ('home_sensing_range', 'Home Sensing Range', 10.0, 80.0, 1.0)
+        ]
+        
+        y_start = self.y + self.tab_height + 20
+        slider_height = 20
+        spacing = 25
+        
+        for i, (param_name, label, min_val, max_val, step) in enumerate(slider_configs):
+            y_pos = y_start + i * spacing
+            slider = UISlider(
+                x=self.x + 10,
+                y=y_pos,
+                width=180,
+                height=slider_height,
+                min_val=min_val,
+                max_val=max_val,
+                initial_val=self.behavior_params[param_name],
+                label=label,
+                callback=lambda val, param=param_name: self._update_behavior_param(param, val)
+            )
+            self.behavior_sliders[param_name] = slider
+    
+    def _update_behavior_param(self, param_name: str, value: float):
+        """Update a behavior parameter."""
+        if param_name == 'pheromone_deposit_interval':
+            self.behavior_params[param_name] = int(value)
+        else:
+            self.behavior_params[param_name] = value
+        
+        # Apply the parameter change to the simulation
+        # This will be handled by the main simulation loop
         
     def _setup_ui_elements(self):
         """Set up the positions of UI elements."""
+        # Set up ant production tab elements
+        tab_content_y = self.y + self.tab_height + 10
         y_offset = 40
         button_height = 35
-        spacing = 10  # Increased spacing between elements
+        spacing = 10
         
         for i, caste in enumerate(self.ant_castes.keys()):
-            y_pos = self.y + y_offset + i * (button_height + spacing)
+            y_pos = tab_content_y + y_offset + i * (button_height + spacing)
             
             # Button rectangle
             button_rect = pygame.Rect(self.x + 10, y_pos, 120, button_height)
             self.buttons[caste] = button_rect
             
-            # Input field rectangle - better alignment with button
+            # Input field rectangle
             input_rect = pygame.Rect(self.x + 140, y_pos + 5, 60, 25)
             self.input_fields[caste]['rect'] = input_rect
     
@@ -85,6 +163,33 @@ class QueenControls:
         Handle pygame events for the queen controls.
         Returns True if the event was handled, False otherwise.
         """
+        # Handle tab clicks
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            mouse_pos = pygame.mouse.get_pos()
+            
+            # Check tab clicks
+            tab_width = self.width // len(self.tabs)
+            for i, tab in enumerate(self.tabs):
+                tab_rect = pygame.Rect(
+                    self.x + i * tab_width, 
+                    self.y, 
+                    tab_width, 
+                    self.tab_height
+                )
+                if tab_rect.collidepoint(mouse_pos):
+                    self.active_tab = i
+                    return True
+        
+        # Handle events based on active tab
+        if self.active_tab == 0:  # Ant Production tab
+            return self._handle_ant_production_events(event, colony)
+        elif self.active_tab == 1:  # Colony Behavior tab
+            return self._handle_behavior_events(event)
+        
+        return False
+    
+    def _handle_ant_production_events(self, event: pygame.event.Event, colony: Colony) -> bool:
+        """Handle events for the ant production tab."""
         if event.type == pygame.MOUSEBUTTONDOWN:
             mouse_pos = pygame.mouse.get_pos()
             
@@ -130,6 +235,13 @@ class QueenControls:
         
         return False
     
+    def _handle_behavior_events(self, event: pygame.event.Event) -> bool:
+        """Handle events for the colony behavior tab."""
+        for slider in self.behavior_sliders.values():
+            if slider.handle_event(event):
+                return True
+        return False
+    
     def _produce_ants(self, caste: AntCaste, colony: Colony):
         """Produce ants of the specified caste."""
         try:
@@ -152,9 +264,45 @@ class QueenControls:
         pygame.draw.rect(screen, (40, 40, 40), panel_rect)
         pygame.draw.rect(screen, (100, 100, 100), panel_rect, 2)
         
+        # Draw tabs
+        self._draw_tabs(screen)
+        
+        # Draw tab content
+        if self.active_tab == 0:  # Ant Production tab
+            self._draw_ant_production_tab(screen, colony)
+        elif self.active_tab == 1:  # Colony Behavior tab
+            self._draw_behavior_tab(screen)
+    
+    def _draw_tabs(self, screen: pygame.Surface):
+        """Draw the tab headers."""
+        tab_width = self.width // len(self.tabs)
+        
+        for i, tab in enumerate(self.tabs):
+            tab_rect = pygame.Rect(
+                self.x + i * tab_width, 
+                self.y, 
+                tab_width, 
+                self.tab_height
+            )
+            
+            # Tab background
+            if i == self.active_tab:
+                pygame.draw.rect(screen, (70, 70, 70), tab_rect)
+            else:
+                pygame.draw.rect(screen, (50, 50, 50), tab_rect)
+            
+            pygame.draw.rect(screen, (100, 100, 100), tab_rect, 1)
+            
+            # Tab text
+            text_surface = self.small_font.render(tab, True, (255, 255, 255))
+            text_rect = text_surface.get_rect(center=tab_rect.center)
+            screen.blit(text_surface, text_rect)
+    
+    def _draw_ant_production_tab(self, screen: pygame.Surface, colony: Colony):
+        """Draw the ant production tab content."""
         # Draw title
-        title_text = self.font.render("Queen Controls", True, (255, 255, 255))
-        screen.blit(title_text, (self.x + 10, self.y + 10))
+        title_text = self.font.render("Ant Production", True, (255, 255, 255))
+        screen.blit(title_text, (self.x + 10, self.y + self.tab_height + 10))
         
         # Draw controls for each caste
         for caste, caste_info in self.ant_castes.items():
@@ -162,6 +310,19 @@ class QueenControls:
         
         # Draw colony info
         self._draw_colony_info(screen, colony)
+    
+    def _draw_behavior_tab(self, screen: pygame.Surface):
+        """Draw the colony behavior tuning tab content."""
+        # Draw title
+        title_text = self.font.render("Colony Behavior Tuning", True, (255, 255, 255))
+        screen.blit(title_text, (self.x + 10, self.y + self.tab_height + 10))
+        
+        # Draw sliders (they handle their own labels and values)
+        for param_name, slider in self.behavior_sliders.items():
+            # Update slider value to match current parameter
+            current_value = self.behavior_params[param_name]
+            slider.set_value(current_value)
+            slider.draw(screen)
     
     def _draw_caste_control(self, screen: pygame.Surface, caste: AntCaste, caste_info: Dict, colony: Colony):
         """Draw controls for a specific ant caste."""
@@ -202,7 +363,7 @@ class QueenControls:
         # Draw cost and population info
         cost_text = f"Cost: {caste_info['cost']}"
         population = colony.get_caste_population(caste)
-        pop_text = f"Population: {population}"
+        pop_text = f"Pop: {population}"
         
         cost_surface = self.small_font.render(cost_text, True, (200, 200, 200))
         pop_surface = self.small_font.render(pop_text, True, caste_info['color'])
@@ -230,3 +391,7 @@ class QueenControls:
         for i, line in enumerate(info_lines):
             text_surface = self.small_font.render(line, True, (255, 255, 255))
             screen.blit(text_surface, (self.x + 10, info_y + i * 15))
+    
+    def get_behavior_params(self) -> Dict:
+        """Get the current behavior parameters."""
+        return self.behavior_params.copy()

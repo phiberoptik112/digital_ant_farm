@@ -246,7 +246,8 @@ class Ant:
         """
         if self._state == AntState.SEARCHING:
             # Try to follow food trail pheromones first
-            food_direction = self.sense_pheromone_gradient(PheromoneType.FOOD_TRAIL, radius=60.0)
+            food_sensing_range = getattr(self, '_food_sensing_range', 60.0)
+            food_direction = self.sense_pheromone_gradient(PheromoneType.FOOD_TRAIL, radius=food_sensing_range)
             if food_direction is not None:
                 # Convert direction vector to angle and turn towards it
                 angle = np.rad2deg(np.arctan2(food_direction[1], food_direction[0]))
@@ -256,7 +257,8 @@ class Ant:
                 self.set_state(AntState.FOLLOWING_TRAIL)
             else:
                 # If no food trail, try to avoid home trails to explore new areas
-                home_direction = self.sense_pheromone_gradient(PheromoneType.HOME_TRAIL, radius=40.0)
+                home_sensing_range = getattr(self, '_home_sensing_range', 40.0)
+                home_direction = self.sense_pheromone_gradient(PheromoneType.HOME_TRAIL, radius=home_sensing_range)
                 if home_direction is not None:
                     # Move away from home trails to explore
                     avoid_angle = np.rad2deg(np.arctan2(-home_direction[1], -home_direction[0]))
@@ -270,7 +272,8 @@ class Ant:
             pass
         elif self._state == AntState.FOLLOWING_TRAIL:
             # Follow food trail pheromones
-            direction = self.sense_pheromone_gradient(PheromoneType.FOOD_TRAIL, radius=60.0)
+            food_sensing_range = getattr(self, '_food_sensing_range', 60.0)
+            direction = self.sense_pheromone_gradient(PheromoneType.FOOD_TRAIL, radius=food_sensing_range)
             if direction is not None:
                 angle = np.rad2deg(np.arctan2(direction[1], direction[0]))
                 self.turn_towards(angle)
