@@ -50,6 +50,9 @@ class Colony:
         # Associated managers (set externally)
         self._pheromone_manager: Optional[PheromoneManager] = None
         
+        # World bounds for ants
+        self._world_bounds = (0, 0, 800, 600)  # Default bounds, should be set externally
+        
     @property
     def position(self) -> Tuple[float, float]:
         """Get the colony position."""
@@ -94,6 +97,17 @@ class Colony:
         """Set the pheromone manager for this colony."""
         self._pheromone_manager = pheromone_manager
     
+    def set_world_bounds(self, bounds: Tuple[float, float, float, float]):
+        """
+        Set the world boundaries for the colony and all its ants.
+        Args:
+            bounds: (x_min, y_min, x_max, y_max) boundaries
+        """
+        self._world_bounds = bounds
+        # Update existing ants with new world bounds
+        for ant in self._ants:
+            ant.set_world_bounds(bounds)
+    
     def spawn_ant(self, caste: AntCaste = AntCaste.WORKER) -> Optional[Ant]:
         """
         Spawn a new ant of a specific caste at the colony position.
@@ -119,6 +133,9 @@ class Colony:
         
         ant = Ant(position=ant_position, orientation=np.random.uniform(0, 360), caste=caste)
         ant.set_state(AntState.SEARCHING)
+        
+        # Set world bounds for the new ant
+        ant.set_world_bounds(self._world_bounds)
         
         # Associate with pheromone manager if available
         if self._pheromone_manager:
@@ -379,6 +396,18 @@ class Colony:
     def remove_ant(self, ant: Ant):
         """Remove an ant from the colony (for external management)."""
         self._remove_ant(ant)
+    
+    def reset_ants_to_nest(self):
+        """Reset all ants to the nest position and set them to searching state."""
+        for ant in self._ants:
+            # Reset ant position to near colony center
+            offset_x = np.random.uniform(-self._radius * 0.5, self._radius * 0.5)
+            offset_y = np.random.uniform(-self._radius * 0.5, self._radius * 0.5)
+            ant._position = (self._position[0] + offset_x, self._position[1] + offset_y)
+            ant.set_state(AntState.SEARCHING)
+            ant.set_carrying_food(False)
+            # Ensure they have the correct world bounds
+            ant.set_world_bounds(self._world_bounds)
     
     def __repr__(self):
         return f"Colony(pos={self._position}, pop={self.population}/{self._max_population}, food={self._food_storage:.1f}, level={self._development_level})"
