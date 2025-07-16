@@ -221,9 +221,10 @@ while running:
         x, y = int(pheromone.position[0]), int(pheromone.position[1])
         alpha = max(20, min(255, int(pheromone.strength * 3)))
         radius = int(pheromone.radius_of_influence)
-        # Different colors for different pheromone types
+        # Use dynamic color for FOOD_TRAIL, static for others
         if pheromone.type == PheromoneType.FOOD_TRAIL:
-            color = (0, 255, 100, alpha)  # Bright green for food trails
+            base_color = pheromone.color  # (R, G, B) from pheromone property
+            color = (*base_color, alpha)
         elif pheromone.type == PheromoneType.HOME_TRAIL:
             color = (100, 200, 255, alpha)  # Light blue for exploration trails
         else:

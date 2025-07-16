@@ -24,8 +24,10 @@ class Pheromone:
         self._max_strength = strength
         self._decay_rate = decay_rate  # Strength lost per tick
         self._creation_time = time.time()
-        self._radius_of_influence = radius_of_influence  # Radius where this pheromone affects ants
-        
+        self._initial_radius_of_influence = radius_of_influence  # Store initial radius
+        self._radius_spread_factor = 1.5  # Max spread multiplier
+        # Note: _radius_of_influence is now dynamic, but keep for compatibility
+        self._radius_of_influence = radius_of_influence
         # Spreading properties
         self._can_spread = can_spread  # Whether this pheromone can spread
         self._spread_radius = spread_radius if spread_radius is not None else radius_of_influence * 2.0  # How far it spreads
@@ -33,7 +35,7 @@ class Pheromone:
         self._spread_delay = spread_delay  # How long to wait before spreading (seconds)
         self._has_spread = False  # Whether this pheromone has already spread
         self._is_spread_deposit = is_spread_deposit  # Whether this is a spread deposit (can't spread further)
-        
+
     @property
     def position(self) -> Tuple[float, float]:
         """Get the pheromone position."""
@@ -56,8 +58,10 @@ class Pheromone:
     
     @property
     def radius_of_influence(self) -> float:
-        """Get the radius of influence for this pheromone."""
-        return self._radius_of_influence
+        """Get the current radius of influence for this pheromone, which increases as it decays."""
+        # Interpolate between initial and 1.5x initial as strength decays
+        decay_fraction = 1.0 - max(0.0, min(self._strength / self._max_strength, 1.0))
+        return self._initial_radius_of_influence * (1.0 + decay_fraction * (self._radius_spread_factor - 1.0))
     
     @property
     def age(self) -> float:
@@ -98,6 +102,20 @@ class Pheromone:
     def mark_as_spread(self):
         """Mark this pheromone as having spread."""
         self._has_spread = True
+
+    @property
+    def color(self) -> Tuple[int, int, int]:
+        """
+        Get the current color of the pheromone as an RGB tuple, interpolating from green to red as it decays.
+        Returns:
+            Tuple[int, int, int]: (R, G, B) color
+        """
+        # Decay fraction: 0 (fresh) -> 1 (fully decayed)
+        decay_fraction = 1.0 - max(0.0, min(self._strength / self._max_strength, 1.0))
+        r = int(255 * decay_fraction)
+        g = int(255 * (1.0 - decay_fraction))
+        b = 0
+        return (r, g, b)
     
     def update(self) -> bool:
         """
@@ -136,23 +154,25 @@ class Pheromone:
         Returns:
             bool: True if position is within influence radius
         """
-        return self.distance_to(position) <= self._radius_of_influence
+        return self.distance_to(position) <= self.radius_of_influence
     
     def get_influence_strength(self, position: Tuple[float, float]) -> float:
         """
-        Get the influence strength at a given position (decreases with distance).
+        Get the influence strength at a given position (decreases with distance and as area spreads).
         Args:
             position: Position to check
         Returns:
             float: Influence strength (0 if outside radius)
         """
+        current_radius = self.radius_of_influence
         distance = self.distance_to(position)
-        if distance > self._radius_of_influence:
+        if distance > current_radius:
             return 0.0
-        
         # Linear falloff with distance
-        influence = 1.0 - (distance / self._radius_of_influence)
-        return self._strength * influence
+        influence = 1.0 - (distance / current_radius)
+        # As area increases, concentration should decrease proportionally to area
+        area_scale = (self._initial_radius_of_influence ** 2) / (current_radius ** 2)
+        return self._strength * influence * area_scale
     
     def __repr__(self):
         spread_info = f", spread={self._has_spread}" if self._can_spread else ""
