@@ -34,6 +34,7 @@ food_manager = FoodManager(world_bounds=(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT))
 # Create a colony at the center
 colony = Colony(position=(400, 300), max_population=50, spawn_rate=0.05)
 colony.set_pheromone_manager(pheromone_manager)
+colony.set_world_bounds((0, 0, SCREEN_WIDTH, SCREEN_HEIGHT))
 colony.receive_food(100.0)
 
 # Create queen controls UI
