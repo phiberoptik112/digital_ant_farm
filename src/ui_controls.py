@@ -50,18 +50,25 @@ class UISlider:
                 elif self.rect.collidepoint(mouse_pos):
                     # Click on track - move knob to position
                     self.knob_pos = mouse_pos[0]
+                    self.knob_pos = max(self.rect.x, min(self.rect.x + self.rect.width, self.knob_pos))
                     self.val = self._pos_to_value(self.knob_pos)
                     if self.callback:
                         self.callback(self.val)
                     return True
         
         elif event.type == pygame.MOUSEBUTTONUP:
-            if event.button == 1:
-                self.dragging = False
-                return True
+            if event.button == 1:  # Left click release
+                if self.dragging:
+                    self.dragging = False
+                    return True
         
         elif event.type == pygame.MOUSEMOTION:
             if self.dragging:
+                # Safety check: if mouse is outside slider area, stop dragging
+                if not self.rect.collidepoint(event.pos):
+                    self.dragging = False
+                    return True
+                
                 self.knob_pos = event.pos[0]
                 self.knob_pos = max(self.rect.x, min(self.rect.x + self.rect.width, self.knob_pos))
                 self.val = self._pos_to_value(self.knob_pos)
@@ -87,9 +94,18 @@ class UISlider:
         knob_color = self.knob_hover_color if knob_rect.collidepoint(mouse_pos) else self.knob_color
         pygame.draw.rect(screen, knob_color, knob_rect)
         
-        # Draw label and value with proper spacing
-        label_text = self.font.render(f"{self.label}: {self.val:.1f}", True, self.text_color)
-        screen.blit(label_text, (self.rect.x, self.rect.y - 28))
+        # Draw label and value with proper alignment
+        # Format value based on whether it's an integer or float
+        if self.val == int(self.val):
+            value_str = f"{int(self.val)}"
+        else:
+            value_str = f"{self.val:.1f}"
+        
+        label_text = self.font.render(f"{self.label}: {value_str}", True, self.text_color)
+        # Center the label horizontally over the slider
+        label_x = self.rect.x + (self.rect.width - label_text.get_width()) // 2
+        label_y = self.rect.y - 25  # Position above the slider
+        screen.blit(label_text, (label_x, label_y))
 
 
 class UIButton:

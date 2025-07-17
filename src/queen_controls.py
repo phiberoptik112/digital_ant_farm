@@ -10,7 +10,7 @@ class QueenControls:
     Includes ant production controls and colony behavior tuning.
     """
     
-    def __init__(self, x: int, y: int, width: int = 350, height: int = 400):
+    def __init__(self, x: int, y: int, width: int = 350, height: int = 500):
         self.x = x
         self.y = y
         self.width = width
@@ -110,9 +110,9 @@ class QueenControls:
             ('home_sensing_range', 'Home Sensing Range', 10.0, 80.0, 1.0)
         ]
         
-        y_start = self.y + self.tab_height + 20
+        y_start = self.y + self.tab_height + 35  # Increased starting position to accommodate labels
         slider_height = 20
-        spacing = 25
+        spacing = 35  # Increased spacing between sliders to prevent label overlap
         
         for i, (param_name, label, min_val, max_val, step) in enumerate(slider_configs):
             y_pos = y_start + i * spacing
@@ -395,3 +395,8 @@ class QueenControls:
     def get_behavior_params(self) -> Dict:
         """Get the current behavior parameters."""
         return self.behavior_params.copy()
+    
+    def reset_all_sliders(self):
+        """Reset the dragging state of all sliders. Useful for cleanup."""
+        for slider in self.behavior_sliders.values():
+            slider.reset_dragging()

@@ -87,8 +87,19 @@ while running:
                 food_manager.regenerate_food()
             elif event.key == pygame.K_c:
                 food_manager.clear_all_food()
-        else:
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            # Check if click is outside UI areas - reset sliders if so
+            mouse_pos = pygame.mouse.get_pos()
+            queen_controls_rect = pygame.Rect(queen_controls.x, queen_controls.y, queen_controls.width, queen_controls.height)
+            
+            if not queen_controls_rect.collidepoint(mouse_pos):
+                # Click outside queen controls - reset all sliders
+                queen_controls.reset_all_sliders()
+            
             # Handle queen controls events
+            queen_controls.handle_event(event, colony)
+        else:
+            # Handle queen controls events for other event types
             queen_controls.handle_event(event, colony)
 
     # Clear screen
