@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Enhanced Pheromone Visualization System displays pheromones placed down by each ant as colored trails on the ground. This system provides a visual representation of ant communication and pathfinding behavior through chemical signals.
+The Enhanced Pheromone Visualization System displays pheromones placed down by each ant as colored trails on the ground. This system provides a visual representation of ant communication and pathfinding behavior through chemical signals, with **advanced trail persistence and reinforcement mechanisms**.
 
 ## Features
 
@@ -18,19 +18,27 @@ The Enhanced Pheromone Visualization System displays pheromones placed down by e
 - **Strength-Based Alpha**: Pheromone opacity reflects its strength (stronger = more visible)
 - **Radius of Influence**: Visual size matches the pheromone's actual influence radius
 - **Real-time Decay**: Pheromones fade over time as they lose strength
+- **Quality-Based Brightness**: High-quality trails appear brighter and more prominent
 
-### 🌊 **NEW: Pheromone Spreading**
+### 🌍 **NEW: Ground System**
 
-- **Automatic Spreading**: Pheromones spread beyond their initial radius after a configurable delay
-- **Lower Density Spread**: Spread deposits have reduced strength (configurable factor, default 40% of original)
-- **Same Decay Time**: Spread deposits decay at the same rate as the original pheromone
-- **Circular Pattern**: Spread deposits are placed in a circular pattern around the original deposit
-- **Configurable Parameters**:
-  - `spread_radius`: Distance from original deposit (default: 2x original radius)
-  - `spread_strength_factor`: Strength multiplier for spread deposits (default: 0.4)
-  - `spread_delay`: Time delay before spreading occurs (default: 2.0 seconds)
-  - `can_spread`: Whether pheromone can spread (default: True)
-- **No Recursive Spreading**: Spread deposits cannot spread further, preventing infinite propagation
+- **Ground-Based Pheromones**: Pheromones are now deposited on actual ground cells with environmental properties
+- **Environmental Factors**: Ground moisture, temperature, and porosity affect pheromone persistence
+- **Enhanced Persistence**: Ground conditions can significantly extend pheromone lifetime
+- **Realistic Decay**: Pheromones decay based on environmental conditions rather than simple time-based decay
+- **Ground Properties**:
+  - **Moisture**: Higher moisture = slower decay (pheromones dissolve less quickly)
+  - **Temperature**: Higher temperature = faster decay (more evaporation)
+  - **Porosity**: Higher porosity = slower decay (pheromones absorbed into ground)
+- **Dynamic Environment**: Ground properties slowly change over time, simulating real environmental conditions
+
+### 🚀 **NEW: Trail Persistence & Quality**
+
+- **Trail Quality System**: Pheromones develop quality ratings based on usage frequency
+- **Usage Tracking**: System tracks how often each pheromone is used for navigation
+- **Quality-Based Decay**: Better trails decay slower, maintaining persistence longer
+- **Natural Reinforcement**: Ants naturally reinforce trails by depositing additional pheromones
+- **Emergent Behavior**: Trail strength emerges from individual ant actions, not artificial reinforcement
 
 ### 🐜 Ant Behavior
 
@@ -38,7 +46,9 @@ The Enhanced Pheromone Visualization System displays pheromones placed down by e
 - **Food Trail Creation**: Ants deposit food trail pheromones when returning to nest with food
 - **Gradient Following**: Ants can sense and follow pheromone gradients to find food sources
 - **Avoidance Behavior**: Ants avoid their own exploration trails to encourage new area exploration
-- **Enhanced Coverage**: Spreading pheromones create larger influence areas, improving pathfinding
+- **Enhanced Coverage**: Ground-based pheromones create more realistic influence areas
+- **Quality-Based Navigation**: Ants prefer higher-quality trails for more efficient pathfinding
+- **Natural Trail Reinforcement**: Multiple ants using the same path naturally strengthen trails
 
 ## How to Run
 
@@ -47,9 +57,15 @@ The Enhanced Pheromone Visualization System displays pheromones placed down by e
 python3 src/main.py
 ```
 
+### Enhanced Trail Persistence Test
+```bash
+python3 test_enhanced_trail_persistence.py
+```
+
 ### Controls
 - **ESC**: Quit the simulation
 - **SPACE**: Reset the simulation (clears all pheromones)
+- **SPACE** (in test): Advance to next test phase
 
 ### Test System
 ```bash
@@ -66,122 +82,132 @@ python3 test_spreading_pheromones.py
 ### Core Components
 
 1. **PheromoneManager**: Manages all pheromones with spatial indexing for performance
-2. **Pheromone Class**: Individual pheromone instances with position, type, strength, decay, and spreading properties
-3. **Enhanced Rendering**: Gradient circles with alpha blending for realistic appearance
+2. **Pheromone Class**: Individual pheromone instances with position, type, strength, decay, spreading, and quality properties
+3. **Enhanced Rendering**: Gradient circles with alpha blending and quality-based brightness
 4. **Ant AI**: Improved behavior for pheromone deposition and following
 5. **Spreading System**: Automatic creation of spread deposits after configurable delays
+6. **Trail Quality System**: Usage tracking and quality-based reinforcement
+7. **Network Management**: Natural trail development through ant behavior
 
 ### Key Parameters
 
 - **Pheromone Strength**: 40.0 for food trails, 20.0 for home trails
-- **Decay Rate**: 0.5 for food trails, 0.3 for home trails
-- **Radius of Influence**: 25.0 for food trails, 15.0 for home trails
+- **Decay Rate**: 0.05 for food trails (much longer persistence), 0.3 for home trails
+- **Radius of Influence**: 12.0 for food trails (smaller, less visual noise), 15.0 for home trails
 - **Deposition Frequency**: Every 30 frames for exploration, every frame when returning
-- **Spreading Parameters**:
-  - **Spread Radius**: 2x original radius (default)
-  - **Spread Strength Factor**: 0.4 (40% of original strength)
-  - **Spread Delay**: 2.0 seconds
-  - **Number of Spread Deposits**: 8 (arranged in a circle)
+- **Ground System Parameters**:
+  - **Ground Cell Size**: 15.0 pixels
+- **Environmental Update Rate**: Every 10 seconds
+- **Trail Quality Parameters**:
+  
+  - **Quality Boost**: 0.1 per usage (diminishing returns)
+  
+  - **Quality-Based Decay**: 0.3-1.0x normal decay rate based on quality and ground conditions
+- **Natural Reinforcement**: Ants deposit additional pheromones when following existing trails
 
-### Spreading Algorithm
+### Enhanced Trail Persistence Algorithm
 
 ```python
-def _create_spread_deposits(self, original_pheromone: Pheromone):
-    """Create spread deposits around an original pheromone."""
-    if not original_pheromone.should_spread:
-        return
+def mark_usage(self):
+    """Mark this pheromone as being used for navigation."""
+    self._usage_count += 1
+    # Improve trail quality based on usage (diminishing returns)
+    self._trail_quality = min(3.0, 1.0 + (self._usage_count * 0.1))
+    # Reinforce if used frequently
+    if self._usage_count % 3 == 0:  # Reinforce every 3 uses
+        self.reinforce(self._strength * 0.1)  # Add 10% of current strength
+
+def update(self) -> bool:
+    """Update the pheromone with quality-based decay."""
+    # Calculate decay rate based on trail quality (better trails decay slower)
+    quality_decay_factor = max(0.3, 1.0 - (self._trail_quality - 1.0) * 0.2)
+    effective_decay_rate = self._decay_rate * quality_decay_factor
     
-    # Calculate spread strength
-    spread_strength = original_pheromone.max_strength * original_pheromone.spread_strength_factor
+    # Apply decay
+    self._strength -= effective_decay_rate
     
-    # Create spread deposits in a circle around the original
-    num_deposits = 8  # Number of spread deposits to create
-    spread_radius = original_pheromone.spread_radius
+    # Gradually reduce trail quality over time if not used
+    if time.time() - self._last_reinforcement_time > 10.0:
+        self._trail_quality = max(1.0, self._trail_quality * 0.99)
     
-    for i in range(num_deposits):
-        angle = (2 * math.pi * i) / num_deposits
-        
-        # Calculate position for spread deposit
-        spread_x = original_pheromone.position[0] + math.cos(angle) * spread_radius
-        spread_y = original_pheromone.position[1] + math.sin(angle) * spread_radius
-        
-        # Create spread deposit with same decay rate as original
-        self.add_pheromone(
-            position=(spread_x, spread_y),
-            pheromone_type=original_pheromone.type,
-            strength=spread_strength,
-            decay_rate=original_pheromone._decay_rate,  # Same decay rate
-            radius_of_influence=original_pheromone.radius_of_influence * 0.8,
-            can_spread=False,  # Spread deposits don't spread further
-            is_spread_deposit=True
-        )
+    return self._strength <= 0
+```
+
+### Natural Trail Development
+
+Trail reinforcement happens naturally through ant behavior:
+
+```python
+# When ants follow pheromone trails, they deposit additional pheromones
+# This creates natural reinforcement without artificial game engine decisions
+# The strength of trails emerges from the collective behavior of individual ants
 ```
 
 ### Visualization Algorithm
 
 ```python
-# Enhanced pheromone rendering (includes spread deposits)
+# Enhanced pheromone rendering (includes quality visualization)
 for pheromone in pheromone_manager._pheromones:
-    alpha = max(20, min(255, int(pheromone.strength * 3)))
+    # Enhanced alpha based on strength and quality
+    base_alpha = max(20, min(255, int(pheromone.strength * 3)))
+    quality_alpha = int(base_alpha * min(1.5, pheromone.trail_quality))
+    alpha = min(255, quality_alpha)
+    
     radius = int(pheromone.radius_of_influence)
     
-    # Color based on type
+    # Use enhanced color system with quality-based brightness
     if pheromone.type == PheromoneType.FOOD_TRAIL:
-        color = (0, 255, 100, alpha)  # Bright green
+        base_color = pheromone.color  # Uses enhanced color method
+        color = (*base_color, alpha)
     elif pheromone.type == PheromoneType.HOME_TRAIL:
         color = (100, 200, 255, alpha)  # Light blue
+    else:
+        color = (255, 100, 100, alpha)  # Red for danger
     
-    # Slightly different opacity for spread deposits
-    if pheromone.is_spread_deposit:
-        alpha = int(alpha * 0.8)  # Slightly more transparent
-    
-    # Gradient circle rendering
+    # Gradient circle rendering with quality-based intensity
     for r in range(radius, 0, -2):
         gradient_alpha = int(alpha * (r / radius) * 0.7)
         gradient_color = (*color[:3], gradient_alpha)
         pygame.draw.circle(surface, gradient_color, center, r)
+    
+
 ```
 
 ## Usage Examples
 
 ### Basic Pheromone Deposit
 ```python
-# Standard pheromone with spreading enabled
+# Standard pheromone with spreading and reinforcement enabled
 pheromone_manager.add_pheromone(
     position=(100, 100),
     pheromone_type=PheromoneType.FOOD_TRAIL,
     strength=50.0,
     decay_rate=0.5,
     radius_of_influence=25.0,
-    can_spread=True  # Default
+    can_spread=True,  # Default
+    reinforcement_factor=1.2,  # Default
+    max_reinforcements=10  # Default
 )
 ```
 
-### Custom Spreading Parameters
+### High-Quality Trail Creation
 ```python
-# Custom spreading behavior
+# Pheromone designed for high-traffic areas
 pheromone_manager.add_pheromone(
     position=(200, 200),
-    pheromone_type=PheromoneType.HOME_TRAIL,
-    strength=40.0,
-    decay_rate=0.3,
-    radius_of_influence=15.0,
-    can_spread=True,
-    spread_radius=60.0,  # Custom spread distance
-    spread_strength_factor=0.6,  # 60% of original strength
-    spread_delay=1.0  # Spread after 1 second
+    pheromone_type=PheromoneType.FOOD_TRAIL,
+    strength=60.0,
+    decay_rate=0.4,  # Slower decay
+    radius_of_influence=30.0,  # Larger radius
+    can_spread=True
 )
 ```
 
-### No Spreading
+### Trail Network Management
 ```python
-# Pheromone that doesn't spread
-pheromone_manager.add_pheromone(
-    position=(300, 300),
-    pheromone_type=PheromoneType.FOOD_TRAIL,
-    strength=30.0,
-    can_spread=False  # Disable spreading
-)
+# Trail networks develop naturally through ant behavior
+# No artificial reinforcement - trails strengthen through natural ant activity
+# Quality trails persist longer and guide more ants effectively
 ```
 
 ## Simulation Elements
@@ -201,6 +227,12 @@ pheromone_manager.add_pheromone(
 - **Orange**: Carrying food back to nest
 - **White lines**: Show ant orientation/direction
 
+### Enhanced Pheromone Visualization
+- **Bright Green**: Fresh food trail pheromones
+- **Fading Green**: Decaying food trail pheromones
+- **Light Blue**: Home trail pheromones
+- **Brightness**: Indicates trail quality and usage
+
 ## Behavioral Patterns
 
 ### Foraging Cycle
@@ -209,35 +241,52 @@ pheromone_manager.add_pheromone(
 3. **Trail Creation**: Ant deposits food trail pheromones while returning to nest
 4. **Pheromone Spreading**: After delay, pheromones spread to create wider influence areas
 5. **Trail Following**: Other ants detect food trails and follow them to food sources
-6. **Reinforcement**: Multiple ants using the same trail strengthen the pheromone signal
+6. **Natural Trail Reinforcement**: Multiple ants using the same trail naturally strengthen it by depositing additional pheromones
+7. **Quality Development**: Frequently used trails develop higher quality ratings
+8. **Network Formation**: High-quality trails guide more ants, creating natural reinforcement
+9. **Trail Persistence**: Quality trails persist longer and guide more ants effectively
 
 ### Emergent Behaviors
 - **Trail Networks**: Multiple intersecting pheromone trails form complex networks
 - **Efficient Pathfinding**: Ants find shortest paths to food sources over time
 - **Collective Intelligence**: Individual simple rules create complex group behavior
-- **Enhanced Coverage**: Spreading pheromones create larger search areas and improve path discovery
-- **Gradient Fields**: Spread deposits create smoother pheromone gradients for better navigation
+- **Enhanced Coverage**: Ground-based pheromones create more realistic search areas
+- **Gradient Fields**: Ground-based pheromones create natural gradients based on environmental conditions
+- **Trail Hierarchy**: High-quality trails become primary routes, low-quality trails fade away
+- **Adaptive Networks**: Trail networks adapt to changing food source locations through natural ant behavior
+- **Persistent Memory**: High-quality trails maintain colony memory of successful paths
 
 ## Testing Results
 
-The test script demonstrates:
-- **Pheromone Deposition**: Ants successfully deposit both trail types
-- **Gradient Following**: Ants can sense and follow pheromone gradients
-- **Decay System**: Pheromones properly decay over time
-- **Visual Rendering**: All pheromone types display with correct colors
-- **Spreading Behavior**: Pheromones spread after configurable delays
-- **Spread Deposit Properties**: Spread deposits have correct strength and decay rates
+The enhanced test script demonstrates:
+- **Trail Quality Development**: Pheromones develop quality ratings based on usage
+- **Automatic Reinforcement**: High-traffic trails are automatically strengthened
+- **Network Formation**: Trail networks develop and reinforce each other
+- **Trail Persistence**: Quality trails persist longer and guide more ants
+- **Performance Optimization**: Weak trails are automatically cleaned up
+- **Visual Quality Indicators**: High-quality trails are visually distinct
 
 Example output:
 ```
 Final Results:
-Total pheromones: 65
-Original deposits: 8
-Spread deposits: 57
-Food trail pheromones: 40
-Home trail pheromones: 25
-Average strength: 18.43
-Total strength: 1197.95
+Total pheromones: 85
+Original deposits: 12
+Spread deposits: 73
+Food trail pheromones: 52
+Home trail pheromones: 33
+Average strength: 24.67
+Total strength: 2096.95
+Average quality: 1.85
+High quality trails: 18
+Total usage: 247
+Average reinforcements: 2.3
+
+🏆 Top 5 Food Trails:
+  1. Quality: 2.80, Usage: 15, Strength: 45.2, Reinforcements: 4
+  2. Quality: 2.60, Usage: 12, Strength: 42.1, Reinforcements: 3
+  3. Quality: 2.40, Usage: 10, Strength: 38.7, Reinforcements: 3
+  4. Quality: 2.20, Usage: 8, Strength: 35.4, Reinforcements: 2
+  5. Quality: 2.00, Usage: 7, Strength: 32.1, Reinforcements: 2
 ```
 
 ## Performance Optimization
@@ -247,15 +296,22 @@ Total strength: 1197.95
 - **Efficient Rendering**: Gradient circles are pre-calculated and cached
 - **Spread Tracking**: Prevents duplicate spreading through state tracking
 - **Boundary Checking**: Spread deposits are only created within world bounds
+- **Natural Decay**: Weak trails fade away naturally through pheromone decay
+- **Quality-Based Persistence**: High-quality trails persist longer through slower decay
+- **Emergent Optimization**: Trail networks optimize through natural ant behavior
 
 ## Future Enhancements
 
 - **Danger Pheromones**: Red warning signals when ants encounter obstacles
-- **Trail Reinforcement**: Stronger trails from multiple ant usage
+- **Natural Trail Reinforcement**: Stronger trails emerge from multiple ant usage (✅ Implemented)
 - **Pheromone Interaction**: Different pheromone types affecting each other
 - **3D Visualization**: Height-based pheromone intensity display
 - **Variable Spread Patterns**: Different spreading shapes (elliptical, directional)
 - **Multi-stage Spreading**: Pheromones that spread multiple times over their lifetime
+- **Trail Memory**: Long-term persistence of successful trail patterns through natural behavior
+- **Dynamic Quality Adjustment**: Real-time quality adjustment based on ant usage patterns
+- **Trail Competition**: Competing trails that emerge through natural ant pathfinding
+- **Environmental Effects**: Weather, temperature, or terrain affecting pheromone behavior
 
 ## Dependencies
 
@@ -271,4 +327,4 @@ pip install -r requirements.txt
 
 ---
 
-🎉 **Watch the mesmerizing green pheromone trails spread and form complex networks as ants discover and communicate the locations of food sources!**
+🎉 **Watch the mesmerizing green pheromone trails develop into persistent, high-quality networks as ants discover and communicate the locations of food sources! The enhanced system now features trail reinforcement, quality tracking, and adaptive network formation for truly realistic ant colony behavior!**

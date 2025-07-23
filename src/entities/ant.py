@@ -224,17 +224,14 @@ class Ant:
         self.accelerate(self._max_velocity)
         self.move(self._velocity)
 
-    def set_pheromone_manager(self, pheromone_manager: PheromoneManager):
+    def set_pheromone_manager(self, pheromone_manager):
         """Associate a PheromoneManager with this ant."""
         self._pheromone_manager = pheromone_manager
 
-    def deposit_pheromone(self, pheromone_type: PheromoneType, strength: float = 50.0, decay_rate: float = 1.0, radius_of_influence: float = 20.0,
-                         can_spread: bool = True, spread_radius: float = None, spread_strength_factor: float = 0.4,
-                         spread_delay: float = 2.0):
+    def deposit_pheromone(self, pheromone_type: PheromoneType, strength: float = 50.0, decay_rate: float = 1.0, radius_of_influence: float = 20.0):
         """Deposit a pheromone at the ant's current position."""
         if hasattr(self, '_pheromone_manager') and self._pheromone_manager:
-            self._pheromone_manager.add_pheromone(self._position, pheromone_type, strength, decay_rate, radius_of_influence,
-                                                can_spread, spread_radius, spread_strength_factor, spread_delay)
+            self._pheromone_manager.add_pheromone(self._position, pheromone_type, strength, decay_rate, radius_of_influence)
 
     def sense_pheromone_gradient(self, pheromone_type: PheromoneType, radius: float = 50.0):
         """Sense the pheromone gradient and return a direction vector (dx, dy) or None."""
@@ -259,17 +256,8 @@ class Ant:
                 self.move(self._velocity)
                 self.set_state(AntState.FOLLOWING_TRAIL)
             else:
-                # If no food trail, try to avoid home trails to explore new areas
-                home_sensing_range = getattr(self, '_home_sensing_range', 40.0)
-                home_direction = self.sense_pheromone_gradient(PheromoneType.HOME_TRAIL, radius=home_sensing_range)
-                if home_direction is not None:
-                    # Move away from home trails to explore
-                    avoid_angle = np.rad2deg(np.arctan2(-home_direction[1], -home_direction[0]))
-                    self.turn_towards(avoid_angle)
-                    self.accelerate(self._max_velocity * 0.8)
-                    self.move(self._velocity)
-                else:
-                    self._random_walk()
+                # If no food trail, do random walk to explore
+                self._random_walk()
         elif self._state == AntState.RETURNING:
             # This state is now handled in main.py for better control
             pass

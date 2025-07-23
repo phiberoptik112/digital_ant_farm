@@ -75,9 +75,9 @@ class QueenControls:
             'home_trail_strength': 20.0,
             'food_trail_strength': 40.0,
             'home_trail_decay': 0.3,
-            'food_trail_decay': 0.5,
+            'food_trail_decay': 0.15,  # Moderate decay for good persistence
             'home_trail_radius': 15.0,
-            'food_trail_radius': 25.0,
+            'food_trail_radius': 12.0,  # Smaller radius to reduce visual noise
             'ant_max_velocity': 2.0,
             'ant_acceleration': 0.5,
             'ant_turn_speed': 3.0,
@@ -99,9 +99,9 @@ class QueenControls:
             ('home_trail_strength', 'Home Trail Strength', 5.0, 100.0, 1.0),
             ('food_trail_strength', 'Food Trail Strength', 10.0, 100.0, 1.0),
             ('home_trail_decay', 'Home Trail Decay Rate', 0.1, 2.0, 0.1),
-            ('food_trail_decay', 'Food Trail Decay Rate', 0.1, 2.0, 0.1),
+            ('food_trail_decay', 'Food Trail Decay Rate', 0.05, 0.5, 0.05),  # Moderate range for persistence
             ('home_trail_radius', 'Home Trail Radius', 5.0, 50.0, 1.0),
-            ('food_trail_radius', 'Food Trail Radius', 10.0, 50.0, 1.0),
+            ('food_trail_radius', 'Food Trail Radius', 5.0, 30.0, 1.0),  # Lower range for smaller trails
             ('ant_max_velocity', 'Ant Max Velocity', 0.5, 5.0, 0.1),
             ('ant_acceleration', 'Ant Acceleration', 0.1, 2.0, 0.1),
             ('ant_turn_speed', 'Ant Turn Speed', 1.0, 10.0, 0.1),

@@ -2,7 +2,8 @@ import pygame
 import numpy as np
 import time
 from entities.ant import Ant, AntState, AntCaste
-from entities.pheromone import PheromoneManager, PheromoneType
+from entities.pheromone import PheromoneType
+from entities.ground import GroundSystem
 from entities.food import FoodManager
 from entities.colony import Colony
 from queen_controls import QueenControls
@@ -28,12 +29,12 @@ BLUE = (0, 0, 255)
 BROWN = (139, 69, 19)
 
 # --- Simulation Setup ---
-pheromone_manager = PheromoneManager(world_bounds=(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT))
+ground_system = GroundSystem(world_bounds=(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT), cell_size=15.0)
 food_manager = FoodManager(world_bounds=(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT))
 
 # Create a colony at the center
 colony = Colony(position=(400, 300), max_population=50, spawn_rate=0.05)
-colony.set_pheromone_manager(pheromone_manager)
+colony.set_pheromone_manager(ground_system)
 colony.set_world_bounds((0, 0, SCREEN_WIDTH, SCREEN_HEIGHT))
 colony.receive_food(100.0)
 
@@ -78,7 +79,7 @@ while running:
                 running = False
             elif event.key == pygame.K_SPACE:
                 # Reset simulation (reset ants to nest, clear pheromones)
-                pheromone_manager.clear_all()
+                ground_system.clear_all()
                 colony.reset_ants_to_nest()
             elif event.key == pygame.K_TAB:
                 # Toggle between queen controls and food controls
@@ -107,7 +108,7 @@ while running:
 
     # Update systems
     food_manager.update_all(delta_time)
-    pheromone_manager.update_all()
+    ground_system.update_all(delta_time)
     colony.update()
 
     # Get behavior parameters from queen controls
@@ -123,12 +124,7 @@ while running:
         ant._food_sensing_range = behavior_params['food_sensing_range']
         ant._home_sensing_range = behavior_params['home_sensing_range']
         
-        # Deposit exploration pheromones periodically while searching
-        if ant.state == AntState.SEARCHING and frame_count % int(behavior_params['pheromone_deposit_interval']) == 0:
-            ant.deposit_pheromone(PheromoneType.HOME_TRAIL, 
-                                strength=behavior_params['home_trail_strength'], 
-                                decay_rate=behavior_params['home_trail_decay'], 
-                                radius_of_influence=behavior_params['home_trail_radius'])
+
 
         # Check for food collision (static food sources)
         if ant.state == AntState.SEARCHING and not ant.carrying_food:
@@ -140,6 +136,7 @@ while running:
                     if dist <= food["radius"]:
                         ant.set_carrying_food(True)
                         ant.set_state(AntState.RETURNING)
+                        ant._food_source_position = food["pos"]  # Remember food source position
                         found_food = True
                         break
             if found_food:
@@ -157,6 +154,7 @@ while running:
                         ant.set_state(AntState.RETURNING)
                         ant._food_amount = collected
                         ant._home_position = colony.position
+                        ant._food_source_position = closest_food.position  # Remember food source position
                 else:
                     dx = closest_food.position[0] - ant.position[0]
                     dy = closest_food.position[1] - ant.position[1]
@@ -173,7 +171,12 @@ while running:
             if distance < 20:
                 colony.receive_food(getattr(ant, '_food_amount', 5.0))
                 ant.set_carrying_food(False)
-                ant.set_state(AntState.SEARCHING)
+                # Remember the food source position to return to it
+                if hasattr(ant, '_food_source_position'):
+                    ant._return_to_food_source = True
+                    ant.set_state(AntState.FOLLOWING_TRAIL)
+                else:
+                    ant.set_state(AntState.SEARCHING)
                 continue
 
         # Update ant behavior
@@ -186,11 +189,25 @@ while running:
                 ant.turn_towards(nest_angle)
                 ant.accelerate(ant._max_velocity)
                 ant.move(ant._velocity)
-            # Deposit food trail pheromones
+            # Deposit food trail pheromones all the way to the nest
             ant.deposit_pheromone(PheromoneType.FOOD_TRAIL, 
                                 strength=behavior_params['food_trail_strength'], 
                                 decay_rate=behavior_params['food_trail_decay'], 
                                 radius_of_influence=behavior_params['food_trail_radius'])
+        elif ant.state == AntState.FOLLOWING_TRAIL and hasattr(ant, '_return_to_food_source') and ant._return_to_food_source:
+            # Follow the food trail back to the food source
+            food_direction = ant.sense_pheromone_gradient(PheromoneType.FOOD_TRAIL, radius=behavior_params['food_sensing_range'])
+            if food_direction is not None:
+                # Convert direction vector to angle and turn towards it
+                angle = np.rad2deg(np.arctan2(food_direction[1], food_direction[0]))
+                ant.turn_towards(angle)
+                ant.accelerate(ant._max_velocity)
+                ant.move(ant._velocity)
+            else:
+                # Lost the trail, search normally
+                ant._return_to_food_source = False
+                ant.set_state(AntState.SEARCHING)
+                ant.step()
         else:
             ant.step()
 
@@ -228,7 +245,7 @@ while running:
                     screen.blit(timer_text, text_rect)
 
     # Enhanced pheromone rendering (gradient, per-pixel alpha)
-    for pheromone in pheromone_manager._pheromones:
+    for pheromone in ground_system.all_pheromones:
         x, y = int(pheromone.position[0]), int(pheromone.position[1])
         alpha = max(20, min(255, int(pheromone.strength * 3)))
         radius = int(pheromone.radius_of_influence)
@@ -283,8 +300,13 @@ while running:
         f"Nurses: {stats['caste_populations'].get(AntCaste.NURSE, 0)}",
         "",
         f"Food Sources: {len(food_manager._food_sources) + len(food_sources)}",
-        f"Pheromones: {len(pheromone_manager._pheromones)}",
-        f"FPS: {clock.get_fps():.1f}"
+        f"Pheromones: {len(ground_system.all_pheromones)}",
+        f"FPS: {clock.get_fps():.1f}",
+        "",
+        "Trail Quality:",
+        f"Avg Quality: {ground_system.get_statistics().get('average_quality', 0):.2f}",
+        f"High Quality: {ground_system.get_statistics().get('high_quality_trails', 0)}",
+        f"Total Usage: {ground_system.get_statistics().get('total_usage', 0)}"
     ]
     
     # Calculate statistics display area

@@ -13,11 +13,10 @@ class PheromoneType(Enum):
 class Pheromone:
     """
     Represents a single pheromone deposit with position, type, strength, and decay.
+    Enhanced with trail reinforcement and persistence mechanisms.
     """
     def __init__(self, position: Tuple[float, float], pheromone_type: PheromoneType, 
-                 strength: float = 100.0, decay_rate: float = 1.0, radius_of_influence: float = 20.0,
-                 can_spread: bool = True, spread_radius: float = None, spread_strength_factor: float = 0.4,
-                 spread_delay: float = 2.0, is_spread_deposit: bool = False):
+                 strength: float = 100.0, decay_rate: float = 1.0, radius_of_influence: float = 20.0):
         self._position = position  # (x, y)
         self._type = pheromone_type
         self._strength = strength
@@ -28,13 +27,12 @@ class Pheromone:
         self._radius_spread_factor = 1.5  # Max spread multiplier
         # Note: _radius_of_influence is now dynamic, but keep for compatibility
         self._radius_of_influence = radius_of_influence
-        # Spreading properties
-        self._can_spread = can_spread  # Whether this pheromone can spread
-        self._spread_radius = spread_radius if spread_radius is not None else radius_of_influence * 2.0  # How far it spreads
-        self._spread_strength_factor = spread_strength_factor  # Fraction of original strength for spread deposits
-        self._spread_delay = spread_delay  # How long to wait before spreading (seconds)
-        self._has_spread = False  # Whether this pheromone has already spread
-        self._is_spread_deposit = is_spread_deposit  # Whether this is a spread deposit (can't spread further)
+        
+        # Trail persistence properties
+        self._trail_quality = 1.0  # Quality factor based on usage frequency
+        self._usage_count = 0  # Number of times this pheromone has been used for navigation
+        
+
 
     @property
     def position(self) -> Tuple[float, float]:
@@ -68,64 +66,28 @@ class Pheromone:
         """Get the age of the pheromone in seconds."""
         return time.time() - self._creation_time
     
-    @property
-    def can_spread(self) -> bool:
-        """Check if this pheromone can spread."""
-        return self._can_spread and not self._is_spread_deposit
-    
-    @property
-    def should_spread(self) -> bool:
-        """Check if this pheromone should spread now."""
-        return (self._can_spread and not self._has_spread and 
-                not self._is_spread_deposit and self.age >= self._spread_delay)
-    
-    @property
-    def spread_radius(self) -> float:
-        """Get the radius within which this pheromone will spread."""
-        return self._spread_radius
-    
-    @property
-    def spread_strength_factor(self) -> float:
-        """Get the strength factor for spread deposits."""
-        return self._spread_strength_factor
-    
-    @property
-    def has_spread(self) -> bool:
-        """Check if this pheromone has already spread."""
-        return self._has_spread
-    
-    @property
-    def is_spread_deposit(self) -> bool:
-        """Check if this is a spread deposit."""
-        return self._is_spread_deposit
-    
-    def mark_as_spread(self):
-        """Mark this pheromone as having spread."""
-        self._has_spread = True
 
+    
     @property
-    def color(self) -> Tuple[int, int, int]:
-        """
-        Get the current color of the pheromone as an RGB tuple, interpolating from green to red as it decays.
-        Returns:
-            Tuple[int, int, int]: (R, G, B) color
-        """
-        # Decay fraction: 0 (fresh) -> 1 (fully decayed)
-        decay_fraction = 1.0 - max(0.0, min(self._strength / self._max_strength, 1.0))
-        r = int(255 * decay_fraction)
-        g = int(255 * (1.0 - decay_fraction))
-        b = 0
-        return (r, g, b)
+    def trail_quality(self) -> float:
+        """Get the trail quality factor based on usage."""
+        return self._trail_quality
     
-    def update(self) -> bool:
-        """
-        Update the pheromone (decay strength).
-        Returns:
-            bool: True if pheromone should be removed (strength <= 0)
-        """
-        self._strength -= self._decay_rate
-        return self._strength <= 0
+    @property
+    def usage_count(self) -> int:
+        """Get the number of times this pheromone has been used."""
+        return self._usage_count
     
+
+    
+
+
+    def mark_usage(self):
+        """Mark this pheromone as being used for navigation."""
+        self._usage_count += 1
+        # Improve trail quality based on usage (diminishing returns)
+        self._trail_quality = min(3.0, 1.0 + (self._usage_count * 0.1))
+
     def reinforce(self, additional_strength: float):
         """
         Reinforce the pheromone with additional strength.
@@ -133,6 +95,55 @@ class Pheromone:
             additional_strength: Amount to add to current strength
         """
         self._strength = min(self._max_strength, self._strength + additional_strength)
+
+    @property
+    def color(self) -> Tuple[int, int, int]:
+        """
+        Get the current color of the pheromone as an RGB tuple, interpolating from green to red as it decays.
+        Enhanced to show trail quality with brightness.
+        Returns:
+            Tuple[int, int, int]: (R, G, B) color
+        """
+        # Decay fraction: 0 (fresh) -> 1 (fully decayed)
+        decay_fraction = 1.0 - max(0.0, min(self._strength / self._max_strength, 1.0))
+        
+        # Base color based on type
+        if self._type == PheromoneType.FOOD_TRAIL:
+            r = int(255 * decay_fraction)
+            g = int(255 * (1.0 - decay_fraction))
+            b = 0
+        elif self._type == PheromoneType.HOME_TRAIL:
+            r = 100
+            g = 200
+            b = 255
+        else:  # DANGER
+            r = 255
+            g = 100
+            b = 100
+        
+        # Apply trail quality brightness boost
+        quality_boost = min(1.5, self._trail_quality)
+        r = min(255, int(r * quality_boost))
+        g = min(255, int(g * quality_boost))
+        b = min(255, int(b * quality_boost))
+        
+        return (r, g, b)
+    
+    def update(self) -> bool:
+        """
+        Update the pheromone (decay strength).
+        Enhanced with quality-based decay.
+        Returns:
+            bool: True if pheromone should be removed (strength <= 0)
+        """
+        # Calculate decay rate based on trail quality (better trails decay slower)
+        quality_decay_factor = max(0.3, 1.0 - (self._trail_quality - 1.0) * 0.2)
+        effective_decay_rate = self._decay_rate * quality_decay_factor
+        
+        # Apply decay
+        self._strength -= effective_decay_rate
+        
+        return self._strength <= 0
     
     def distance_to(self, position: Tuple[float, float]) -> float:
         """
@@ -158,7 +169,8 @@ class Pheromone:
     
     def get_influence_strength(self, position: Tuple[float, float]) -> float:
         """
-        Get the influence strength at a given position (decreases with distance and as area spreads).
+        Get the influence strength at a given position (decreases with distance).
+        Enhanced with trail quality factor.
         Args:
             position: Position to check
         Returns:
@@ -170,18 +182,19 @@ class Pheromone:
             return 0.0
         # Linear falloff with distance
         influence = 1.0 - (distance / current_radius)
-        # As area increases, concentration should decrease proportionally to area
-        area_scale = (self._initial_radius_of_influence ** 2) / (current_radius ** 2)
-        return self._strength * influence * area_scale
+        # Apply trail quality factor for better trails
+        return self._strength * influence * self._trail_quality
     
     def __repr__(self):
-        spread_info = f", spread={self._has_spread}" if self._can_spread else ""
-        return f"Pheromone(pos={self._position}, type={self._type.name}, strength={self._strength:.1f}{spread_info})"
+        quality_info = f", quality={self._trail_quality:.2f}" if self._trail_quality > 1.0 else ""
+        usage_info = f", uses={self._usage_count}" if self._usage_count > 0 else ""
+        return f"Pheromone(pos={self._position}, type={self._type.name}, strength={self._strength:.1f}{quality_info}{usage_info})"
 
 
 class PheromoneManager:
     """
     Manages all pheromones in the simulation with efficient spatial indexing.
+    Enhanced with trail reinforcement and persistence mechanisms.
     """
     def __init__(self, world_bounds: Tuple[float, float, float, float] = (0, 0, 800, 600)):
         self._pheromones: List[Pheromone] = []
@@ -189,10 +202,10 @@ class PheromoneManager:
         self._spatial_grid: Dict[Tuple[int, int], List[Pheromone]] = {}
         self._grid_size = 40  # Size of each grid cell (should be >= max pheromone radius)
         
+
+        
     def add_pheromone(self, position: Tuple[float, float], pheromone_type: PheromoneType, 
-                     strength: float = 100.0, decay_rate: float = 1.0, radius_of_influence: float = 20.0,
-                     can_spread: bool = True, spread_radius: float = None, spread_strength_factor: float = 0.4,
-                     spread_delay: float = 2.0, is_spread_deposit: bool = False) -> Pheromone:
+                     strength: float = 100.0, decay_rate: float = 1.0, radius_of_influence: float = 20.0) -> Pheromone:
         """
         Add a new pheromone to the simulation.
         Args:
@@ -201,60 +214,16 @@ class PheromoneManager:
             strength: Initial strength
             decay_rate: Decay rate per tick
             radius_of_influence: Influence radius
-            can_spread: Whether this pheromone can spread
-            spread_radius: How far the pheromone spreads (defaults to 2x radius_of_influence)
-            spread_strength_factor: Fraction of original strength for spread deposits
-            spread_delay: How long to wait before spreading (seconds)
-            is_spread_deposit: Whether this is a spread deposit
         Returns:
             Pheromone: The created pheromone
         """
-        pheromone = Pheromone(position, pheromone_type, strength, decay_rate, radius_of_influence,
-                            can_spread, spread_radius, spread_strength_factor, spread_delay, is_spread_deposit)
+        pheromone = Pheromone(position, pheromone_type, strength, decay_rate, radius_of_influence)
+        
         self._pheromones.append(pheromone)
         self._add_to_spatial_grid(pheromone)
         return pheromone
     
-    def _create_spread_deposits(self, original_pheromone: Pheromone):
-        """
-        Create spread deposits around an original pheromone.
-        Args:
-            original_pheromone: The pheromone to spread from
-        """
-        if not original_pheromone.should_spread:
-            return
-        
-        # Calculate spread strength
-        spread_strength = original_pheromone.max_strength * original_pheromone.spread_strength_factor
-        
-        # Create spread deposits in a circle around the original
-        num_deposits = 8  # Number of spread deposits to create
-        spread_radius = original_pheromone.spread_radius
-        
-        for i in range(num_deposits):
-            angle = (2 * math.pi * i) / num_deposits
-            
-            # Calculate position for spread deposit
-            spread_x = original_pheromone.position[0] + math.cos(angle) * spread_radius
-            spread_y = original_pheromone.position[1] + math.sin(angle) * spread_radius
-            
-            # Check if position is within world bounds
-            if (self._world_bounds[0] <= spread_x <= self._world_bounds[2] and
-                self._world_bounds[1] <= spread_y <= self._world_bounds[3]):
-                
-                # Create spread deposit with same decay rate as original
-                self.add_pheromone(
-                    position=(spread_x, spread_y),
-                    pheromone_type=original_pheromone.type,
-                    strength=spread_strength,
-                    decay_rate=original_pheromone._decay_rate,  # Same decay rate
-                    radius_of_influence=original_pheromone.radius_of_influence * 0.8,  # Slightly smaller radius
-                    can_spread=False,  # Spread deposits don't spread further
-                    is_spread_deposit=True
-                )
-        
-        # Mark original as having spread
-        original_pheromone.mark_as_spread()
+
     
     def remove_pheromone(self, pheromone: Pheromone):
         """
@@ -270,6 +239,7 @@ class PheromoneManager:
                                radius: float = 50.0) -> Optional[Tuple[float, float]]:
         """
         Calculate the gradient direction of pheromones of a specific type.
+        Enhanced with trail quality weighting and usage tracking.
         Args:
             position: Position to calculate gradient from
             pheromone_type: Type of pheromone to consider
@@ -282,17 +252,22 @@ class PheromoneManager:
         if not nearby_pheromones:
             return None
         
-        # Calculate gradient vector
+        # Calculate gradient vector with quality weighting
         gradient_x = 0.0
         gradient_y = 0.0
+        total_weight = 0.0
         
         for pheromone in nearby_pheromones:
             distance = pheromone.distance_to(position)
             if distance == 0:
                 continue
             
-            # Calculate influence strength
+            # Calculate influence strength (already includes trail quality)
             influence = pheromone.get_influence_strength(position)
+            
+            # Additional quality weighting for better trails
+            quality_weight = pheromone.trail_quality
+            weighted_influence = influence * quality_weight
             
             # Calculate direction vector (from position to pheromone)
             dx = pheromone.position[0] - position[0]
@@ -300,8 +275,12 @@ class PheromoneManager:
             
             # Normalize and weight by influence
             length = np.sqrt(dx*dx + dy*dy)
-            gradient_x += (dx / length) * influence
-            gradient_y += (dy / length) * influence
+            gradient_x += (dx / length) * weighted_influence
+            gradient_y += (dy / length) * weighted_influence
+            total_weight += weighted_influence
+            
+            # Mark pheromone as used for navigation
+            pheromone.mark_usage()
         
         # Normalize the gradient vector
         gradient_length = np.sqrt(gradient_x*gradient_x + gradient_y*gradient_y)
@@ -339,36 +318,40 @@ class PheromoneManager:
                           radius: float = 50.0) -> float:
         """
         Get the total pheromone strength at a position for a specific type.
+        Enhanced with trail quality weighting.
         Args:
             position: Position to check
             pheromone_type: Type of pheromone
             radius: Search radius
         Returns:
-            float: Total pheromone strength
+            float: Total pheromone strength (weighted by trail quality)
         """
         nearby_pheromones = self.get_pheromones_in_range(position, radius, pheromone_type)
-        return sum(pheromone.get_influence_strength(position) for pheromone in nearby_pheromones)
+        total_strength = 0.0
+        
+        for pheromone in nearby_pheromones:
+            # Get influence strength (already includes trail quality)
+            influence = pheromone.get_influence_strength(position)
+            # Additional quality boost for high-quality trails
+            quality_boost = min(2.0, pheromone.trail_quality)
+            total_strength += influence * quality_boost
+            
+            # Mark pheromone as used
+            pheromone.mark_usage()
+        
+        return total_strength
     
     def update_all(self):
         """
-        Update all pheromones (decay, spread, and remove depleted ones).
+        Update all pheromones (decay and remove depleted ones).
         Called each simulation tick.
         """
         pheromones_to_remove = []
-        pheromones_to_spread = []
         
         for pheromone in self._pheromones:
-            # Check if pheromone should spread
-            if pheromone.should_spread:
-                pheromones_to_spread.append(pheromone)
-            
             # Update pheromone (decay)
             if pheromone.update():  # Returns True if should be removed
                 pheromones_to_remove.append(pheromone)
-        
-        # Create spread deposits
-        for pheromone in pheromones_to_spread:
-            self._create_spread_deposits(pheromone)
         
         # Remove depleted pheromones
         for pheromone in pheromones_to_remove:
@@ -377,38 +360,44 @@ class PheromoneManager:
     def get_statistics(self) -> dict:
         """
         Get statistics about all pheromones.
+        Enhanced with trail quality and usage statistics.
         Returns:
-            dict: Statistics including total pheromones, types, spread info, etc.
+            dict: Statistics including total pheromones, types, spread info, quality metrics, etc.
         """
         total_pheromones = len(self._pheromones)
         type_counts = {}
         total_strength = 0.0
-        spread_deposits = 0
-        original_deposits = 0
+        total_usage = 0
+        total_quality = 0.0
+        high_quality_trails = 0  # Trails with quality > 1.5
         
         for pheromone in self._pheromones:
             pheromone_type = pheromone.type.name
             type_counts[pheromone_type] = type_counts.get(pheromone_type, 0) + 1
             total_strength += pheromone.strength
+            total_usage += pheromone.usage_count
+            total_quality += pheromone.trail_quality
             
-            if pheromone.is_spread_deposit:
-                spread_deposits += 1
-            else:
-                original_deposits += 1
+            if pheromone.trail_quality > 1.5:
+                high_quality_trails += 1
         
         return {
             'total_pheromones': total_pheromones,
             'type_counts': type_counts,
             'total_strength': total_strength,
             'average_strength': total_strength / total_pheromones if total_pheromones > 0 else 0,
-            'spread_deposits': spread_deposits,
-            'original_deposits': original_deposits
+            'total_usage': total_usage,
+            'average_usage': total_usage / total_pheromones if total_pheromones > 0 else 0,
+            'average_quality': total_quality / total_pheromones if total_pheromones > 0 else 0,
+            'high_quality_trails': high_quality_trails
         }
     
     def clear_all(self):
         """Remove all pheromones from the simulation."""
         self._pheromones.clear()
         self._spatial_grid.clear()
+    
+
     
     def _get_cell_key(self, position: Tuple[float, float]) -> Tuple[int, int]:
         """Get the spatial grid cell key for a position."""
