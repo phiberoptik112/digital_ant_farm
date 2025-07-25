@@ -2,7 +2,6 @@ from enum import Enum, auto
 from typing import Tuple, Optional, List, Dict
 import numpy as np
 import time
-import math
 
 class PheromoneType(Enum):
     """Types of pheromones that ants can deposit."""
@@ -200,7 +199,7 @@ class PheromoneManager:
         self._pheromones: List[Pheromone] = []
         self._world_bounds = world_bounds
         self._spatial_grid: Dict[Tuple[int, int], List[Pheromone]] = {}
-        self._grid_size = 40  # Size of each grid cell (should be >= max pheromone radius)
+        self._grid_size = 80  # Size of each grid cell (optimized for performance)
         
 
         

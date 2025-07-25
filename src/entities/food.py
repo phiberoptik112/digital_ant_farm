@@ -252,7 +252,7 @@ class FoodManager:
         self._food_sources = []  # List of all food sources
         self._world_bounds = world_bounds
         self._spatial_grid = {}  # Simple spatial hash for efficient queries
-        self._grid_size = 50  # Size of each grid cell
+        self._grid_size = 80  # Size of each grid cell (optimized for performance)
         
         # Food generation parameters (exposed for UI controls)
         self.num_food_sources = 8

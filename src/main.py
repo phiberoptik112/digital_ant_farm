@@ -8,6 +8,7 @@ from entities.food import FoodManager
 from entities.colony import Colony
 from queen_controls import QueenControls
 from ui_controls import FoodSystemUI
+from pheromone_renderer import PheromoneRenderer, OptimizedDistanceCalculator, BatchedAntUpdater
 
 pygame.init()
 
@@ -62,6 +63,10 @@ last_time = time.time()
 # Frame counter for pheromone deposition
 frame_count = 0
 
+# Performance optimization systems
+pheromone_renderer = PheromoneRenderer()
+ant_updater = BatchedAntUpdater(batch_size=3)
+
 # --- Main Loop ---
 while running:
     # Calculate delta time
@@ -110,30 +115,36 @@ while running:
     food_manager.update_all(delta_time)
     ground_system.update_all(delta_time)
     colony.update()
+    
+    # Update batched ant system
+    ant_updater.update_frame()
 
     # Get behavior parameters from queen controls
     behavior_params = queen_controls.get_behavior_params()
     
-    # --- Ant update and interaction logic ---
-    for ant in colony.get_ants():
-        # Apply behavior parameters to ant
-        ant._max_velocity = behavior_params['ant_max_velocity']
-        ant._acceleration = behavior_params['ant_acceleration']
-        ant._turn_speed = behavior_params['ant_turn_speed']
-        ant._detection_radius = behavior_params['ant_detection_radius']
-        ant._food_sensing_range = behavior_params['food_sensing_range']
-        ant._home_sensing_range = behavior_params['home_sensing_range']
+    # --- Optimized Ant update and interaction logic ---
+    ants = colony.get_ants()
+    for i, ant in enumerate(ants):
+        # Use batched updates for performance
+        should_full_update = ant_updater.should_update_ant(i)
         
+        # Apply behavior parameters to ant (only when doing full update)
+        if should_full_update:
+            ant._max_velocity = behavior_params['ant_max_velocity']
+            ant._acceleration = behavior_params['ant_acceleration']
+            ant._turn_speed = behavior_params['ant_turn_speed']
+            ant._detection_radius = behavior_params['ant_detection_radius']
+            ant._food_sensing_range = behavior_params['food_sensing_range']
+            ant._home_sensing_range = behavior_params['home_sensing_range']
 
-
-        # Check for food collision (static food sources)
+        # Check for food collision (static food sources) - optimized distance calculation
         if ant.state == AntState.SEARCHING and not ant.carrying_food:
             found_food = False
             for food in food_sources:
                 if food["active"]:
-                    dist = np.sqrt((ant.position[0] - food["pos"][0])**2 + 
-                                 (ant.position[1] - food["pos"][1])**2)
-                    if dist <= food["radius"]:
+                    # Use squared distance for performance
+                    dist_squared = OptimizedDistanceCalculator.distance_squared(ant.position, food["pos"])
+                    if dist_squared <= food["radius"] * food["radius"]:
                         ant.set_carrying_food(True)
                         ant.set_state(AntState.RETURNING)
                         ant._food_source_position = food["pos"]  # Remember food source position
@@ -142,12 +153,12 @@ while running:
             if found_food:
                 continue  # skip food_manager if static food found
 
-        # Check for food collision (food_manager)
-        if ant.state == AntState.SEARCHING and not ant.carrying_food:
+        # Check for food collision (food_manager) - only on full updates
+        if should_full_update and ant.state == AntState.SEARCHING and not ant.carrying_food:
             nearby_food = food_manager.get_food_in_range(ant.position, ant._detection_radius)
             if nearby_food:
-                closest_food = min(nearby_food, key=lambda f: f.distance_to(ant.position))
-                if closest_food.distance_to(ant.position) < 15:
+                closest_food = min(nearby_food, key=lambda f: OptimizedDistanceCalculator.distance_squared(f.position, ant.position))
+                if OptimizedDistanceCalculator.is_within_range_squared(ant.position, closest_food.position, 15):
                     collected = closest_food.collect_food(5.0)
                     if collected > 0:
                         ant.set_carrying_food(True)
@@ -158,17 +169,14 @@ while running:
                 else:
                     dx = closest_food.position[0] - ant.position[0]
                     dy = closest_food.position[1] - ant.position[1]
-                    distance = np.sqrt(dx*dx + dy*dy)
-                    if distance > 0:
+                    distance_squared = dx*dx + dy*dy
+                    if distance_squared > 0:
                         target_angle = np.rad2deg(np.arctan2(dy, dx))
                         ant.orientation = target_angle
 
-        # Check for nest collision when returning (colony)
+        # Check for nest collision when returning (colony) - optimized distance
         if ant.state == AntState.RETURNING and ant.carrying_food:
-            dx = colony.position[0] - ant.position[0]
-            dy = colony.position[1] - ant.position[1]
-            distance = np.sqrt(dx*dx + dy*dy)
-            if distance < 20:
+            if OptimizedDistanceCalculator.is_within_range_squared(ant.position, colony.position, 20):
                 colony.receive_food(getattr(ant, '_food_amount', 5.0))
                 ant.set_carrying_food(False)
                 # Remember the food source position to return to it
@@ -183,31 +191,37 @@ while running:
         if ant.state == AntState.RETURNING:
             # Move towards nest and deposit food trail pheromones
             nest_dir = (colony.position[0] - ant.position[0], colony.position[1] - ant.position[1])
-            nest_dist = np.sqrt(nest_dir[0]**2 + nest_dir[1]**2)
-            if nest_dist > 0:
+            nest_dist_squared = nest_dir[0]**2 + nest_dir[1]**2
+            if nest_dist_squared > 0:
+                nest_dist = np.sqrt(nest_dist_squared)
                 nest_angle = np.rad2deg(np.arctan2(nest_dir[1], nest_dir[0]))
                 ant.turn_towards(nest_angle)
                 ant.accelerate(ant._max_velocity)
                 ant.move(ant._velocity)
-            # Deposit food trail pheromones all the way to the nest
-            ant.deposit_pheromone(PheromoneType.FOOD_TRAIL, 
-                                strength=behavior_params['food_trail_strength'], 
-                                decay_rate=behavior_params['food_trail_decay'], 
-                                radius_of_influence=behavior_params['food_trail_radius'])
+            # Deposit food trail pheromones all the way to the nest (less frequently for performance)
+            if frame_count % 2 == 0:  # Every other frame
+                ant.deposit_pheromone(PheromoneType.FOOD_TRAIL, 
+                                    strength=behavior_params['food_trail_strength'], 
+                                    decay_rate=behavior_params['food_trail_decay'], 
+                                    radius_of_influence=behavior_params['food_trail_radius'])
         elif ant.state == AntState.FOLLOWING_TRAIL and hasattr(ant, '_return_to_food_source') and ant._return_to_food_source:
-            # Follow the food trail back to the food source
-            food_direction = ant.sense_pheromone_gradient(PheromoneType.FOOD_TRAIL, radius=behavior_params['food_sensing_range'])
-            if food_direction is not None:
-                # Convert direction vector to angle and turn towards it
-                angle = np.rad2deg(np.arctan2(food_direction[1], food_direction[0]))
-                ant.turn_towards(angle)
-                ant.accelerate(ant._max_velocity)
-                ant.move(ant._velocity)
+            # Follow the food trail back to the food source (only on full updates for performance)
+            if should_full_update:
+                food_direction = ant.sense_pheromone_gradient(PheromoneType.FOOD_TRAIL, radius=behavior_params['food_sensing_range'])
+                if food_direction is not None:
+                    # Convert direction vector to angle and turn towards it
+                    angle = np.rad2deg(np.arctan2(food_direction[1], food_direction[0]))
+                    ant.turn_towards(angle)
+                    ant.accelerate(ant._max_velocity)
+                    ant.move(ant._velocity)
+                else:
+                    # Lost the trail, search normally
+                    ant._return_to_food_source = False
+                    ant.set_state(AntState.SEARCHING)
+                    ant.step()
             else:
-                # Lost the trail, search normally
-                ant._return_to_food_source = False
-                ant.set_state(AntState.SEARCHING)
-                ant.step()
+                # Just move forward on non-update frames
+                ant.move(ant._velocity)
         else:
             ant.step()
 
@@ -244,27 +258,8 @@ while running:
                     text_rect = timer_text.get_rect(center=(x, y - radius - 15))
                     screen.blit(timer_text, text_rect)
 
-    # Enhanced pheromone rendering (gradient, per-pixel alpha)
-    for pheromone in ground_system.all_pheromones:
-        x, y = int(pheromone.position[0]), int(pheromone.position[1])
-        alpha = max(20, min(255, int(pheromone.strength * 3)))
-        radius = int(pheromone.radius_of_influence)
-        # Use dynamic color for FOOD_TRAIL, static for others
-        if pheromone.type == PheromoneType.FOOD_TRAIL:
-            base_color = pheromone.color  # (R, G, B) from pheromone property
-            color = (*base_color, alpha)
-        elif pheromone.type == PheromoneType.HOME_TRAIL:
-            color = (100, 200, 255, alpha)  # Light blue for exploration trails
-        else:
-            color = (255, 100, 100, alpha)  # Red for danger
-        # Create surface with per-pixel alpha
-        s = pygame.Surface((radius * 2, radius * 2), pygame.SRCALPHA)
-        # Draw gradient circle for more realistic pheromone appearance
-        for r in range(radius, 0, -2):
-            gradient_alpha = int(alpha * (r / radius) * 0.7)
-            gradient_color = (*color[:3], gradient_alpha)
-            pygame.draw.circle(s, gradient_color, (radius, radius), r)
-        screen.blit(s, (x - radius, y - radius))
+    # Optimized pheromone rendering using cached surfaces
+    pheromone_renderer.render_pheromones(screen, ground_system.all_pheromones)
 
     # Draw colony
     colony_x, colony_y = int(colony.position[0]), int(colony.position[1])
@@ -302,6 +297,10 @@ while running:
         f"Food Sources: {len(food_manager._food_sources) + len(food_sources)}",
         f"Pheromones: {len(ground_system.all_pheromones)}",
         f"FPS: {clock.get_fps():.1f}",
+        "",
+        "Performance:",
+        f"Cache Hit Rate: {pheromone_renderer.get_cache_stats().get('hit_rate', 0):.1f}%",
+        f"Cache Size: {pheromone_renderer.get_cache_stats().get('cache_size', 0)}",
         "",
         "Trail Quality:",
         f"Avg Quality: {ground_system.get_statistics().get('average_quality', 0):.2f}",

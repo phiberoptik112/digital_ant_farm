@@ -75,9 +75,9 @@ class QueenControls:
             'home_trail_strength': 20.0,
             'food_trail_strength': 40.0,
             'home_trail_decay': 0.3,
-            'food_trail_decay': 0.15,  # Moderate decay for good persistence
+            'food_trail_decay': 0.35,  # Moderate decay for good persistence
             'home_trail_radius': 15.0,
-            'food_trail_radius': 12.0,  # Smaller radius to reduce visual noise
+            'food_trail_radius': 6.0,  # Smaller radius to reduce visual noise
             'ant_max_velocity': 2.0,
             'ant_acceleration': 0.5,
             'ant_turn_speed': 3.0,
