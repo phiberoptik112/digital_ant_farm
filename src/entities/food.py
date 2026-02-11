@@ -7,7 +7,7 @@ class FoodSource:
     Represents a food source in the simulation with position, amount, and depletion mechanics.
     """
     def __init__(self, position: Tuple[float, float], amount: float = 100.0, 
-                 max_amount: float = 100.0, depletion_rate: float = 1.0,
+                 max_amount: float = 300.0, depletion_rate: float = 1.0,
                  expiration_time: float = 30.0, refresh_time: float = 60.0):
         self._position = position  # (x, y)
         self._amount = min(amount, max_amount)  # Current food amount

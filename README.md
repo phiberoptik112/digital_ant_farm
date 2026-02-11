@@ -16,8 +16,25 @@ A comprehensive ant colony simulation with an advanced food system featuring tim
 ### 🐜 Ant Behavior
 - **Food seeking**: Ants actively search for and move towards nearby food sources
 - **Food collection**: Ants collect food and change behavior when carrying it
-- **Pheromone trails**: Ants leave pheromone trails to guide other ants to food sources
+- **Advanced pheromone trails**: Enhanced trail system with quality-based persistence and reinforcement
+- **Trail learning**: Frequently used trails become stronger and last longer
 - **State-based behavior**: Different visual indicators for searching, carrying food, and returning
+
+### 🌍 Enhanced Pheromone System
+- **Trail quality**: Pheromones improve quality based on usage frequency
+- **Dynamic radius**: Pheromone influence radius expands as strength decays for better coverage
+- **Quality-based decay**: High-quality trails decay slower, creating persistent pathways
+- **Ground interaction**: Pheromones interact with ground properties affecting persistence
+- **Visual feedback**: Brighter colors indicate higher quality, well-established trails
+- **Usage tracking**: System tracks how often trails are used for reinforcement
+
+### 🏞️ Ground System
+- **Cellular ground**: World divided into cells with unique environmental properties
+- **Moisture effects**: Ground moisture affects pheromone decay rates
+- **Temperature variation**: Ground temperature influences pheromone evaporation
+- **Porosity simulation**: Soil porosity affects how pheromones are absorbed
+- **Dynamic environment**: Ground properties slowly change over time
+- **Visual representation**: Ground cells display different colors based on properties
 
 ### 🎮 Interactive Controls
 - **TAB**: Toggle the food system control panel
@@ -109,16 +126,32 @@ The food system exposes all parameters through an interactive UI panel:
 4. **Expired**: Food becomes unavailable and shows refresh countdown
 5. **Refresh**: Food regenerates to full capacity and restarts cycle
 
+### Enhanced Pheromone System
+- **Trail Quality System**: Pheromones track usage frequency and improve quality (1.0-3.0 multiplier)
+- **Dynamic Radius**: Influence radius expands as pheromones decay (1.0x to 1.5x initial radius)
+- **Quality-Based Decay**: High-quality trails decay 20-70% slower than standard pheromones
+- **Usage Reinforcement**: Each use increases trail quality with diminishing returns
+- **Visual Indicators**: Color brightness reflects trail quality and usage frequency
+
+### Ground System Architecture
+- **Cellular Grid**: World divided into cells with unique environmental properties
+- **Ground Properties**: Each cell has moisture (0.3-0.8), porosity (0.2-0.7), temperature (0.6-1.0), and roughness (0.1-0.9)
+- **Environmental Effects**: Ground conditions modify pheromone decay rates dynamically
+- **Spatial Optimization**: Efficient cell-based lookups for pheromone interactions
+- **Dynamic Environment**: Ground properties change slowly over time to simulate natural variation
+
 ### Ant-Food Interaction
 - Ants detect food sources within their detection radius
 - Ants navigate towards the nearest available food source
+- Enhanced pathfinding using quality-weighted pheromone gradients
 - Visual indicators show ant detection ranges and food-seeking behavior
 - Ants change color when carrying food (orange vs yellow)
 
 ### Performance Optimization
 - Spatial grid system for efficient food detection queries
+- Cell-based ground system for optimized pheromone management
 - Optimized rendering with transparency and surface caching
-- Configurable cleanup of old food sources
+- Configurable cleanup of old food sources and depleted pheromones
 - Delta-time based updates for smooth animation
 
 ## Testing
@@ -140,10 +173,13 @@ python3 test_food_system_demo.py
 src/
 ├── main.py              # Main simulation loop and Pygame setup
 ├── ui_controls.py       # Interactive UI components
+├── pheromone_renderer.py # Specialized rendering for pheromone visualization
+├── queen_controls.py    # Advanced controls for queen ant management
 └── entities/
     ├── ant.py           # Ant class with movement, state, and behavior logic
-    ├── pheromone.py     # Pheromone system with PheromoneManager
-    └── food.py          # Food source mechanics
+    ├── pheromone.py     # Enhanced pheromone system with quality tracking and persistence
+    ├── food.py          # Food source mechanics with time-based expiration
+    └── ground.py        # Ground system with environmental properties affecting pheromones
 ```
 
 ## Development
