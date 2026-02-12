@@ -61,22 +61,31 @@ class GroundCell:
             
             self.last_update = current_time
         
-        # Update pheromones with ground-modified decay rates
-        pheromones_to_remove = []
+        # Update pheromones with ground-modified decay and diffusion rates
+        # Note: Actual removal is handled by GroundSystem.update_all() to keep lists in sync
         for pheromone in self.pheromones:
-            # Calculate ground-modified decay rate
+            # Calculate ground-modified rates
             ground_decay_multiplier = self._calculate_decay_multiplier()
-            modified_decay_rate = pheromone._decay_rate * ground_decay_multiplier
+            ground_diffusion_multiplier = self._calculate_diffusion_multiplier()
             
             # Apply modified decay
+            modified_decay_rate = pheromone._decay_rate * ground_decay_multiplier
             pheromone._strength -= modified_decay_rate * delta_time
             
-            if pheromone._strength <= 0:
-                pheromones_to_remove.append(pheromone)
-        
-        # Remove depleted pheromones
-        for pheromone in pheromones_to_remove:
-            self.remove_pheromone(pheromone)
+            # Apply diffusion - expand outer radius
+            if pheromone._current_radius < pheromone._max_radius:
+                modified_diffusion = pheromone._diffusion_rate * ground_diffusion_multiplier
+                pheromone._current_radius += modified_diffusion * delta_time
+                pheromone._current_radius = min(pheromone._current_radius, pheromone._max_radius)
+            
+            # Apply dissipation - expand inner radius (hollow out center)
+            if pheromone._inner_radius < pheromone._current_radius * 0.7:
+                modified_dissipation = pheromone._dissipation_rate * ground_diffusion_multiplier
+                pheromone._inner_radius += modified_dissipation * delta_time
+                pheromone._inner_radius = min(pheromone._inner_radius, pheromone._current_radius * 0.7)
+            
+            # Update concentration peak
+            pheromone._concentration_peak = (pheromone._inner_radius + pheromone._current_radius) / 2
     
     def _calculate_decay_multiplier(self) -> float:
         """
@@ -94,6 +103,23 @@ class GroundCell:
         porosity_factor = 1.0 - (self.porosity * 0.2)  # 0.8 to 1.0
         
         return moisture_factor * temperature_factor * porosity_factor
+    
+    def _calculate_diffusion_multiplier(self) -> float:
+        """
+        Calculate how ground properties affect pheromone diffusion/spreading.
+        Higher values = faster spreading
+        Lower values = slower spreading
+        """
+        # Temperature: Higher temperature = faster diffusion
+        temperature_factor = 0.6 + (self.temperature * 0.8)  # 0.6 to 1.4
+        
+        # Roughness: Higher roughness = slower diffusion (more obstacles)
+        roughness_factor = 1.2 - (self.roughness * 0.5)  # 0.7 to 1.2
+        
+        # Porosity: Higher porosity = slightly faster diffusion (more pathways)
+        porosity_factor = 0.9 + (self.porosity * 0.2)  # 0.9 to 1.1
+        
+        return temperature_factor * roughness_factor * porosity_factor
     
     def get_ground_color(self) -> Tuple[int, int, int]:
         """Get the visual color of this ground cell based on its properties."""
@@ -148,13 +174,24 @@ class GroundSystem:
         return (x, y)
     
     def add_pheromone(self, position: Tuple[float, float], pheromone_type: PheromoneType, 
-                     strength: float = 100.0, decay_rate: float = 1.0, radius_of_influence: float = 20.0) -> Pheromone:
+                     strength: float = 100.0, decay_rate: float = 1.0, radius_of_influence: float = 20.0,
+                     diffusion_rate: float = 2.5, max_radius: float = 80.0) -> Pheromone:
         """
-        Add a pheromone to the ground system.
-        The pheromone will be placed in the appropriate ground cell.
+        Add a pheromone to the ground system with diffusion properties.
+        The pheromone will spread outward over time while dissipating from the center.
+        
+        Args:
+            position: Position to place the pheromone
+            pheromone_type: Type of pheromone
+            strength: Initial strength
+            decay_rate: How fast the overall strength decreases
+            radius_of_influence: Initial radius of the pheromone
+            diffusion_rate: How fast the pheromone spreads outward per tick
+            max_radius: Maximum radius the pheromone can spread to
         """
-        # Create the pheromone
-        pheromone = Pheromone(position, pheromone_type, strength, decay_rate, radius_of_influence)
+        # Create the pheromone with diffusion parameters
+        pheromone = Pheromone(position, pheromone_type, strength, decay_rate, 
+                             radius_of_influence, diffusion_rate, max_radius)
         
         # Add to ground cell
         cell_key = self._get_cell_key(position)
@@ -206,8 +243,16 @@ class GroundSystem:
         return pheromones_in_range
     
     def get_pheromone_direction(self, position: Tuple[float, float], pheromone_type: PheromoneType, 
-                               radius: float = 50.0) -> Optional[Tuple[float, float]]:
-        """Calculate the gradient direction of pheromones of a specific type."""
+                               radius: float = 50.0, mark_as_used: bool = False) -> Optional[Tuple[float, float]]:
+        """
+        Calculate the gradient direction of pheromones of a specific type.
+        
+        Args:
+            position: Current position to calculate gradient from
+            pheromone_type: Type of pheromone to consider
+            radius: Search radius
+            mark_as_used: If True, mark pheromones as used (only set when actually following trail)
+        """
         nearby_pheromones = self.get_pheromones_in_range(position, radius, pheromone_type)
         
         if not nearby_pheromones:
@@ -240,8 +285,9 @@ class GroundSystem:
             gradient_y += (dy / length) * weighted_influence
             total_weight += weighted_influence
             
-            # Mark pheromone as used for navigation
-            pheromone.mark_usage()
+            # Only mark pheromone as used if explicitly requested (when actually following)
+            if mark_as_used:
+                pheromone.mark_usage()
         
         # Normalize the gradient vector
         gradient_length = np.sqrt(gradient_x*gradient_x + gradient_y*gradient_y)
@@ -251,8 +297,16 @@ class GroundSystem:
         return None
     
     def get_total_strength(self, position: Tuple[float, float], pheromone_type: PheromoneType, 
-                          radius: float = 50.0) -> float:
-        """Get the total pheromone strength at a position for a specific type."""
+                          radius: float = 50.0, mark_as_used: bool = False) -> float:
+        """
+        Get the total pheromone strength at a position for a specific type.
+        
+        Args:
+            position: Position to check
+            pheromone_type: Type of pheromone
+            radius: Search radius
+            mark_as_used: If True, mark pheromones as used (only set when actually using the info)
+        """
         nearby_pheromones = self.get_pheromones_in_range(position, radius, pheromone_type)
         total_strength = 0.0
         
@@ -263,25 +317,28 @@ class GroundSystem:
             quality_boost = min(2.0, pheromone.trail_quality)
             total_strength += influence * quality_boost
             
-            # Mark pheromone as used
-            pheromone.mark_usage()
+            # Only mark pheromone as used if explicitly requested
+            if mark_as_used:
+                pheromone.mark_usage()
         
         return total_strength
     
     def update_all(self, delta_time: float = 1.0):
         """Update all ground cells and their pheromones."""
-        pheromones_to_remove = []
-        
-        # Update all ground cells
+        # Update all ground cells (applies decay and diffusion to pheromones)
         for cell in self.ground_grid.values():
             cell.update(delta_time)
         
-        # Check for depleted pheromones in tracking list
-        for pheromone in self.all_pheromones:
-            if pheromone._strength <= 0:
-                pheromones_to_remove.append(pheromone)
+        # Collect and remove depleted or fully diffused pheromones
+        pheromones_to_remove = []
+        for p in self.all_pheromones:
+            # Remove if strength depleted
+            if p._strength <= 0:
+                pheromones_to_remove.append(p)
+            # Remove if ring width becomes negligible (fully diffused)
+            elif (p._current_radius - p._inner_radius) < 2.0:
+                pheromones_to_remove.append(p)
         
-        # Remove depleted pheromones
         for pheromone in pheromones_to_remove:
             self.remove_pheromone(pheromone)
     
@@ -293,12 +350,16 @@ class GroundSystem:
         total_usage = 0
         total_quality = 0.0
         high_quality_trails = 0
+        total_diffusion = 0.0
+        avg_ring_width = 0.0
         
         for pheromone in self.all_pheromones:
             pheromone_type = pheromone.type.name
             type_counts[pheromone_type] = type_counts.get(pheromone_type, 0) + 1
             total_strength += pheromone.strength
             total_usage += pheromone.usage_count
+            total_diffusion += pheromone.diffusion_progress
+            avg_ring_width += pheromone.ring_width
             total_quality += pheromone.trail_quality
             
             if pheromone.trail_quality > 1.5:
@@ -312,7 +373,9 @@ class GroundSystem:
             'total_usage': total_usage,
             'average_usage': total_usage / total_pheromones if total_pheromones > 0 else 0,
             'average_quality': total_quality / total_pheromones if total_pheromones > 0 else 0,
-            'high_quality_trails': high_quality_trails
+            'high_quality_trails': high_quality_trails,
+            'average_diffusion': total_diffusion / total_pheromones if total_pheromones > 0 else 0,
+            'average_ring_width': avg_ring_width / total_pheromones if total_pheromones > 0 else 0
         }
     
     def clear_all(self):

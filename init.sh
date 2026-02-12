@@ -33,25 +33,37 @@ fi
 # Virtual environment setup
 VENV_DIR=".venv"
 
+# Check if venv exists and is healthy (pip must work)
+if [ -d "$VENV_DIR" ]; then
+    if "$VENV_DIR/bin/python" -c "import sys" 2>/dev/null; then
+        echo -e "${GREEN}✅ Virtual environment already exists${NC}"
+    else
+        echo -e "${YELLOW}⚠️  Virtual environment is broken (e.g. project moved). Recreating...${NC}"
+        rm -rf "$VENV_DIR"
+    fi
+fi
+
 if [ ! -d "$VENV_DIR" ]; then
     echo -e "${YELLOW}📦 Creating virtual environment...${NC}"
     python3 -m venv "$VENV_DIR"
     echo -e "${GREEN}✅ Virtual environment created${NC}"
-else
-    echo -e "${GREEN}✅ Virtual environment already exists${NC}"
 fi
 
 # Activate virtual environment
 echo -e "${YELLOW}🔧 Activating virtual environment...${NC}"
 source "$VENV_DIR/bin/activate"
 
+# Use venv's pip/python explicitly to avoid fallback to system/user install
+PIP_CMD="$VENV_DIR/bin/pip"
+PYTHON_CMD="$VENV_DIR/bin/python"
+
 # Upgrade pip
 echo -e "${YELLOW}⬆️  Upgrading pip...${NC}"
-pip install --upgrade pip
+"$PIP_CMD" install --upgrade pip
 
-# Install dependencies
+# Install dependencies (into venv only, no user fallback)
 echo -e "${YELLOW}📚 Installing dependencies...${NC}"
-pip install -r requirements.txt
+"$PIP_CMD" install -r requirements.txt
 
 echo -e "${GREEN}✅ All dependencies installed${NC}"
 

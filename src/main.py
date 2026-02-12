@@ -46,12 +46,8 @@ queen_controls = QueenControls(x=850, y=50, width=350, height=500)
 nest_pos = colony.position
 nest_radius = 30
 
-# Create food sources (static, for enhanced pheromone demo)
-food_sources = [
-    {"pos": (600, 150), "radius": 25, "active": True},
-    {"pos": (700, 400), "radius": 20, "active": True},
-    {"pos": (300, 450), "radius": 30, "active": True}
-]
+# Generate initial food sources using FoodManager
+food_manager.generate_random_food()
 
 # Font for information display
 font = pygame.font.Font(None, 24)
@@ -137,22 +133,6 @@ while running:
             ant._food_sensing_range = behavior_params['food_sensing_range']
             ant._home_sensing_range = behavior_params['home_sensing_range']
 
-        # Check for food collision (static food sources) - optimized distance calculation
-        if ant.state == AntState.SEARCHING and not ant.carrying_food:
-            found_food = False
-            for food in food_sources:
-                if food["active"]:
-                    # Use squared distance for performance
-                    dist_squared = OptimizedDistanceCalculator.distance_squared(ant.position, food["pos"])
-                    if dist_squared <= food["radius"] * food["radius"]:
-                        ant.set_carrying_food(True)
-                        ant.set_state(AntState.RETURNING)
-                        ant._food_source_position = food["pos"]  # Remember food source position
-                        found_food = True
-                        break
-            if found_food:
-                continue  # skip food_manager if static food found
-
         # Check for food collision (food_manager) - only on full updates
         if should_full_update and ant.state == AntState.SEARCHING and not ant.carrying_food:
             nearby_food = food_manager.get_food_in_range(ant.position, ant._detection_radius)
@@ -203,7 +183,9 @@ while running:
                 ant.deposit_pheromone(PheromoneType.FOOD_TRAIL, 
                                     strength=behavior_params['food_trail_strength'], 
                                     decay_rate=behavior_params['food_trail_decay'], 
-                                    radius_of_influence=behavior_params['food_trail_radius'])
+                                    radius_of_influence=behavior_params['food_trail_radius'],
+                                    diffusion_rate=behavior_params['food_trail_diffusion'],
+                                    max_radius=behavior_params['food_trail_max_radius'])
         elif ant.state == AntState.FOLLOWING_TRAIL and hasattr(ant, '_return_to_food_source') and ant._return_to_food_source:
             # Follow the food trail back to the food source (only on full updates for performance)
             if should_full_update:
@@ -226,12 +208,6 @@ while running:
             ant.step()
 
     # --- Rendering ---
-
-    # Draw food sources (static, for enhanced pheromone demo)
-    for food in food_sources:
-        if food["active"]:
-            pygame.draw.circle(screen, GREEN, (int(food["pos"][0]), int(food["pos"][1])), food["radius"])
-            pygame.draw.circle(screen, (0, 200, 0), (int(food["pos"][0]), int(food["pos"][1])), food["radius"], 2)
 
     # Draw food sources (food_manager)
     for food_source in food_manager._food_sources:
@@ -294,7 +270,7 @@ while running:
         f"Scouts: {stats['caste_populations'].get(AntCaste.SCOUT, 0)}",
         f"Nurses: {stats['caste_populations'].get(AntCaste.NURSE, 0)}",
         "",
-        f"Food Sources: {len(food_manager._food_sources) + len(food_sources)}",
+        f"Food Sources: {len(food_manager._food_sources)}",
         f"Pheromones: {len(ground_system.all_pheromones)}",
         f"FPS: {clock.get_fps():.1f}",
         "",

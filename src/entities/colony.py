@@ -90,13 +90,21 @@ class Colony:
         print(f"[DEBUG] Egg-laying interval set to {interval_seconds:.2f} seconds ({self._egg_laying_interval} ticks)")
 
     def lay_egg(self, caste: AntCaste = AntCaste.WORKER):
-        """Lay an egg (queen action)."""
+        """Lay an egg (queen action). Requires food to lay egg."""
         if self.population + len(self._eggs) + len(self._pupae) >= self._max_population:
             print(f"[DEBUG] Egg laying failed: Colony at max population ({self._max_population})")
             return False
+        
+        # Check and consume food for egg laying
+        food_cost = self._get_caste_food_cost(caste)
+        if self._food_storage < food_cost:
+            print(f"[DEBUG] Egg laying failed: Not enough food ({self._food_storage:.1f} < {food_cost:.1f}) for {caste.name}")
+            return False
+        
+        self._food_storage -= food_cost
         hatch_tick = self._current_tick + self._egg_duration
         self._eggs.append({'created_at': self._current_tick, 'hatch_tick': hatch_tick, 'caste': caste})
-        print(f"[DEBUG] Egg laid (caste: {caste.name}) at tick {self._current_tick}, will hatch at {hatch_tick}")
+        print(f"[DEBUG] Egg laid (caste: {caste.name}) at tick {self._current_tick}, will hatch at {hatch_tick}, food cost: {food_cost}")
         return True
 
     def _hatch_eggs(self):

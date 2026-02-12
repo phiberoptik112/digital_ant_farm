@@ -83,6 +83,10 @@ class UISlider:
         self.val = max(self.min_val, min(self.max_val, value))
         self.knob_pos = self._value_to_pos(self.val)
     
+    def reset_dragging(self):
+        """Reset the dragging state. Useful for cleanup when clicking outside."""
+        self.dragging = False
+    
     def draw(self, screen: pygame.Surface):
         """Draw the slider."""
         # Draw track

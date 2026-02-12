@@ -31,12 +31,21 @@ def test_pheromone_basic():
     assert abs(distance - expected_distance) < 0.01
     
     # Test influence calculation
+    # With new ring-based diffusion model, influence is strongest at the ring midpoint
     influence = pheromone.get_influence_strength((110, 100))  # 10 units away
     print(f"  Distance: {pheromone.distance_to((110, 100))}")
     print(f"  Radius of influence: {pheromone.radius_of_influence}")
+    print(f"  Ring width: {pheromone.ring_width}")
     print(f"  Influence strength: {influence}")
     assert influence > 0  # Should have some influence
-    assert influence < pheromone.strength  # Should be less than full strength
+    
+    # Test that influence drops off at the edge of the ring
+    edge_influence = pheromone.get_influence_strength((118, 100))  # Near outer edge
+    assert edge_influence < influence  # Should be less than middle of ring
+    
+    # Test that there's no influence outside the radius
+    outside_influence = pheromone.get_influence_strength((125, 100))  # Outside radius
+    assert outside_influence == 0  # No influence outside
     
     print("✓ Basic Pheromone tests passed!")
 

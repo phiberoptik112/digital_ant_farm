@@ -31,47 +31,80 @@ class PheromoneRenderer:
         strength_bucket = min(self._strength_buckets - 1, 
                             int(pheromone.strength / (100.0 / self._strength_buckets)))
         
-        # Bucket radius into ranges
-        radius = pheromone.radius_of_influence
-        radius_bucket = min(self._radius_buckets - 1,
-                          int(radius / (60.0 / self._radius_buckets)))  # Assume max radius ~60
+        # Bucket outer radius into ranges
+        outer_radius = pheromone.radius_of_influence
+        outer_radius_bucket = min(self._radius_buckets - 1,
+                          int(outer_radius / (80.0 / self._radius_buckets)))  # Assume max radius ~80
+        
+        # Bucket inner radius into ranges (for ring effect)
+        inner_radius = pheromone.inner_radius
+        inner_radius_bucket = min(self._radius_buckets - 1,
+                          int(inner_radius / (60.0 / self._radius_buckets)))
         
         # Include type and basic properties
         return (
             pheromone.type,
             strength_bucket,
-            radius_bucket,
+            outer_radius_bucket,
+            inner_radius_bucket,
             int(pheromone.trail_quality * 2)  # Group quality into half-steps
         )
     
     def _create_pheromone_surface(self, pheromone: Pheromone) -> pygame.Surface:
         """
-        Create an optimized pheromone surface with limited gradient rings.
+        Create an optimized pheromone surface with spreading ring effect.
+        The pheromone is rendered as an expanding ring that fades from the center.
         """
-        radius = int(pheromone.radius_of_influence)
-        if radius <= 0:
+        outer_radius = int(pheromone.radius_of_influence)
+        inner_radius = int(pheromone.inner_radius)
+        
+        if outer_radius <= 0:
             return pygame.Surface((1, 1), pygame.SRCALPHA)
         
-        surface = pygame.Surface((radius * 2, radius * 2), pygame.SRCALPHA)
+        surface = pygame.Surface((outer_radius * 2, outer_radius * 2), pygame.SRCALPHA)
         color = pheromone.color
+        center = (outer_radius, outer_radius)
         
         # Calculate base alpha from strength and quality
         base_alpha = max(20, min(255, int(pheromone.strength * 3 * pheromone.trail_quality)))
         
-        # Draw only 4 concentric circles for performance
-        ring_step = max(1, radius // self._gradient_rings)
+        ring_width = outer_radius - inner_radius
+        if ring_width < 2:
+            ring_width = 2
         
-        for i, r in enumerate(range(radius, 0, -ring_step)):
-            if r <= 0:
+        # Draw the spreading ring with gradient
+        num_rings = min(self._gradient_rings + 2, max(3, ring_width // 2))
+        ring_step = max(1, ring_width // num_rings)
+        
+        for i in range(num_rings):
+            # Calculate radius for this sub-ring (from outer to inner)
+            r = outer_radius - i * ring_step
+            if r <= inner_radius:
                 break
-                
-            # Calculate alpha for this ring (stronger in center)
-            ring_factor = (self._gradient_rings - i) / self._gradient_rings
-            ring_alpha = int(base_alpha * ring_factor * 0.7)
             
-            if ring_alpha > 5:  # Skip very faint rings
+            # Calculate distance from the concentration peak (middle of ring)
+            ring_midpoint = (outer_radius + inner_radius) / 2
+            dist_from_peak = abs(r - ring_midpoint)
+            max_dist = ring_width / 2
+            
+            # Gaussian-like alpha falloff from peak
+            if max_dist > 0:
+                peak_factor = np.exp(-(dist_from_peak ** 2) / (2 * (max_dist * 0.7) ** 2))
+            else:
+                peak_factor = 1.0
+            
+            ring_alpha = int(base_alpha * peak_factor * 0.8)
+            
+            if ring_alpha > 3:  # Skip very faint rings
                 ring_color = (*color, ring_alpha)
-                pygame.draw.circle(surface, ring_color, (radius, radius), r)
+                pygame.draw.circle(surface, ring_color, center, r)
+        
+        # Draw faint residual in the dissipated center (if there's a hollow)
+        if inner_radius > 3:
+            center_alpha = int(base_alpha * 0.1)
+            if center_alpha > 2:
+                center_color = (*color, center_alpha)
+                pygame.draw.circle(surface, center_color, center, inner_radius)
         
         return surface
     

@@ -78,6 +78,8 @@ class QueenControls:
             'food_trail_decay': 0.35,  # Moderate decay for good persistence
             'home_trail_radius': 15.0,
             'food_trail_radius': 6.0,  # Smaller radius to reduce visual noise
+            'food_trail_diffusion': 2.5,  # How fast pheromones spread outward
+            'food_trail_max_radius': 80.0,  # Maximum spread radius
             'ant_max_velocity': 2.0,
             'ant_acceleration': 0.5,
             'ant_turn_speed': 3.0,
@@ -102,6 +104,8 @@ class QueenControls:
             ('food_trail_decay', 'Food Trail Decay Rate', 0.05, 0.5, 0.05),  # Moderate range for persistence
             ('home_trail_radius', 'Home Trail Radius', 5.0, 50.0, 1.0),
             ('food_trail_radius', 'Food Trail Radius', 5.0, 30.0, 1.0),  # Lower range for smaller trails
+            ('food_trail_diffusion', 'Trail Diffusion Rate', 0.5, 5.0, 0.25),  # How fast trails spread
+            ('food_trail_max_radius', 'Trail Max Spread', 40.0, 150.0, 5.0),  # Max spread radius
             ('ant_max_velocity', 'Ant Max Velocity', 0.5, 5.0, 0.1),
             ('ant_acceleration', 'Ant Acceleration', 0.1, 2.0, 0.1),
             ('ant_turn_speed', 'Ant Turn Speed', 1.0, 10.0, 0.1),

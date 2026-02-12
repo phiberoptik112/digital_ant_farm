@@ -29,10 +29,12 @@ class Ant:
         
         # Movement parameters (modified by caste)
         self._velocity = 0.0  # Current speed
-        self._max_velocity = 2.0  # Maximum speed
+        self._base_max_velocity = 2.0  # Base maximum speed (before carrying penalty)
+        self._max_velocity = 2.0  # Current maximum speed
         self._acceleration = 0.5  # How quickly speed changes
         self._turn_speed = 3.0  # Degrees per frame for turning
         self._detection_radius = 20.0  # Radius for detecting food/pheromones
+        self._carrying_speed_multiplier = 0.7  # Speed reduction when carrying food
         
         # Apply caste-specific modifiers
         self._apply_caste_modifiers()
@@ -47,15 +49,18 @@ class Ant:
             pass
         elif self._caste == AntCaste.SOLDIER:
             # Soldiers are slower but stronger
+            self._base_max_velocity *= 0.8
             self._max_velocity *= 0.8
             self._detection_radius *= 1.3
         elif self._caste == AntCaste.SCOUT:
             # Scouts are faster with better detection
+            self._base_max_velocity *= 1.4
             self._max_velocity *= 1.4
             self._detection_radius *= 1.5
             self._turn_speed *= 1.2
         elif self._caste == AntCaste.NURSE:
             # Nurses are slower but more efficient
+            self._base_max_velocity *= 0.9
             self._max_velocity *= 0.9
             self._detection_radius *= 0.8
 
@@ -149,12 +154,14 @@ class Ant:
 
     def set_carrying_food(self, carrying: bool):
         """Set whether the ant is carrying food."""
+        if self._carrying_food == carrying:
+            return  # No change needed
         self._carrying_food = carrying
-        # Adjust movement parameters when carrying food
+        # Adjust movement parameters when carrying food using base velocity
         if carrying:
-            self._max_velocity *= 0.7  # Slow down when carrying
+            self._max_velocity = self._base_max_velocity * self._carrying_speed_multiplier
         else:
-            self._max_velocity /= 0.7  # Restore normal speed
+            self._max_velocity = self._base_max_velocity
 
     def set_world_bounds(self, bounds: Tuple[float, float, float, float]):
         """Set the world boundaries for collision detection."""
@@ -228,10 +235,26 @@ class Ant:
         """Associate a PheromoneManager with this ant."""
         self._pheromone_manager = pheromone_manager
 
-    def deposit_pheromone(self, pheromone_type: PheromoneType, strength: float = 50.0, decay_rate: float = 1.0, radius_of_influence: float = 20.0):
-        """Deposit a pheromone at the ant's current position."""
+    def deposit_pheromone(self, pheromone_type: PheromoneType, strength: float = 50.0, 
+                         decay_rate: float = 1.0, radius_of_influence: float = 20.0,
+                         diffusion_rate: float = 2.5, max_radius: float = 80.0):
+        """
+        Deposit a pheromone at the ant's current position.
+        The pheromone will spread outward over time while dissipating from the center.
+        
+        Args:
+            pheromone_type: Type of pheromone to deposit
+            strength: Initial strength of the pheromone
+            decay_rate: How fast the overall strength decreases
+            radius_of_influence: Initial radius of the pheromone
+            diffusion_rate: How fast the pheromone spreads outward per tick
+            max_radius: Maximum radius the pheromone can spread to
+        """
         if hasattr(self, '_pheromone_manager') and self._pheromone_manager:
-            self._pheromone_manager.add_pheromone(self._position, pheromone_type, strength, decay_rate, radius_of_influence)
+            self._pheromone_manager.add_pheromone(
+                self._position, pheromone_type, strength, decay_rate, 
+                radius_of_influence, diffusion_rate, max_radius
+            )
 
     def sense_pheromone_gradient(self, pheromone_type: PheromoneType, radius: float = 50.0):
         """Sense the pheromone gradient and return a direction vector (dx, dy) or None."""
