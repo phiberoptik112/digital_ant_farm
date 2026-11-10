@@ -23,7 +23,6 @@ BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 YELLOW = (255, 255, 0)
 RED = (255, 0, 0)
-GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
 BROWN = (139, 69, 19)
 
@@ -44,12 +43,8 @@ queen_controls = QueenControls(x=850, y=50, width=350, height=500)
 nest_pos = colony.position
 nest_radius = 30
 
-# Create food sources (static, for enhanced pheromone demo)
-food_sources = [
-    {"pos": (600, 150), "radius": 25, "active": True},
-    {"pos": (700, 400), "radius": 20, "active": True},
-    {"pos": (300, 450), "radius": 30, "active": True}
-]
+# Forage patches: a few clumps on open ground, off the queen panel and away from the nest.
+food_manager.generate_patches(colony.position)
 
 # Font for information display
 font = pygame.font.Font(None, 24)
@@ -84,7 +79,7 @@ while running:
                 # Toggle between queen controls and food controls
                 pass  # TODO: Implement toggle between UI modes
             elif event.key == pygame.K_r:
-                food_manager.regenerate_food()
+                food_manager.generate_patches(colony.position)
             elif event.key == pygame.K_c:
                 food_manager.clear_all_food()
         elif event.type == pygame.MOUSEBUTTONDOWN:
@@ -130,22 +125,7 @@ while running:
                                 decay_rate=behavior_params['home_trail_decay'], 
                                 radius_of_influence=behavior_params['home_trail_radius'])
 
-        # Check for food collision (static food sources)
-        if ant.state == AntState.SEARCHING and not ant.carrying_food:
-            found_food = False
-            for food in food_sources:
-                if food["active"]:
-                    dist = np.sqrt((ant.position[0] - food["pos"][0])**2 + 
-                                 (ant.position[1] - food["pos"][1])**2)
-                    if dist <= food["radius"]:
-                        ant.set_carrying_food(True)
-                        ant.set_state(AntState.RETURNING)
-                        found_food = True
-                        break
-            if found_food:
-                continue  # skip food_manager if static food found
-
-        # Check for food collision (food_manager)
+        # Check for food collision (forage patches)
         if ant.state == AntState.SEARCHING and not ant.carrying_food:
             nearby_food = food_manager.get_food_in_range(ant.position, ant._detection_radius)
             if nearby_food:
@@ -196,14 +176,20 @@ while running:
 
     # --- Rendering ---
 
-    # Draw food sources (static, for enhanced pheromone demo)
-    for food in food_sources:
-        if food["active"]:
-            pygame.draw.circle(screen, GREEN, (int(food["pos"][0]), int(food["pos"][1])), food["radius"])
-            pygame.draw.circle(screen, (0, 200, 0), (int(food["pos"][0]), int(food["pos"][1])), food["radius"], 2)
-
-    # Draw food sources (food_manager)
+    # Draw forage patches, then each morsel.
+    drawn_patches = set()
     for food_source in food_manager._food_sources:
+        patch_id = food_source.patch_id
+        if patch_id is not None and patch_id not in drawn_patches:
+            drawn_patches.add(patch_id)
+            center = food_manager.active_patch_center(patch_id)
+            if center is not None:
+                marker_radius = int(round(2.5 * food_manager.patch_sigma))
+                pygame.draw.circle(
+                    screen, (86, 122, 70),
+                    (int(center[0]), int(center[1])),
+                    marker_radius, 1,
+                )
         if food_source.visual_radius > 0:
             x, y = int(food_source.position[0]), int(food_source.position[1])
             radius = int(food_source.visual_radius)
@@ -214,13 +200,13 @@ while running:
             screen.blit(food_surface, (x - radius, y - radius))
             border_color = (255, 255, 255) if food_source.is_available else (100, 100, 100)
             pygame.draw.circle(screen, border_color, (x, y), radius, 2)
-            if food_source.is_available:
+            if food_source.expires and food_source.is_available:
                 time_left = food_source.time_until_expiration
                 if time_left < 10:
                     timer_text = font.render(f"{time_left:.1f}s", True, (255, 200, 200))
                     text_rect = timer_text.get_rect(center=(x, y - radius - 15))
                     screen.blit(timer_text, text_rect)
-            else:
+            elif food_source.expires:
                 refresh_time = food_source.time_until_refresh
                 if refresh_time > 0:
                     timer_text = font.render(f"R:{refresh_time:.1f}s", True, (200, 200, 255))
@@ -282,7 +268,7 @@ while running:
         f"Scouts: {stats['caste_populations'].get(AntCaste.SCOUT, 0)}",
         f"Nurses: {stats['caste_populations'].get(AntCaste.NURSE, 0)}",
         "",
-        f"Food Sources: {len(food_manager._food_sources) + len(food_sources)}",
+        f"Food Sources: {len(food_manager._food_sources)}",
         f"Pheromones: {len(pheromone_manager._pheromones)}",
         f"FPS: {clock.get_fps():.1f}"
     ]
