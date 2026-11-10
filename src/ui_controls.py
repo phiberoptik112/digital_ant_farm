@@ -95,11 +95,12 @@ class UISlider:
         pygame.draw.rect(screen, knob_color, knob_rect)
         
         # Draw label and value with proper alignment
-        # Format value based on whether it's an integer or float
-        if self.val == int(self.val):
-            value_str = f"{int(self.val)}"
+        # Format value based on whether it's an integer or float.
+        # Rates below 1 (evaporation λ) need more than one decimal place.
+        if abs(self.val - round(self.val)) < 1e-6:
+            value_str = f"{int(round(self.val))}"
         else:
-            value_str = f"{self.val:.1f}"
+            value_str = f"{self.val:.3f}".rstrip("0").rstrip(".")
         
         label_text = self.font.render(f"{self.label}: {value_str}", True, self.text_color)
         # Center the label horizontally over the slider

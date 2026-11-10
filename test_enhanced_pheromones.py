@@ -87,36 +87,33 @@ def test_enhanced_pheromone_system():
     print("✓ Enhanced pheromone system test completed successfully!")
 
 def test_pheromone_gradient_following():
-    """Test that ants can follow pheromone gradients correctly."""
-    print("\nTesting Pheromone Gradient Following...")
-    
-    pheromone_manager = PheromoneManager(world_bounds=(0, 0, 800, 600))
-    
-    # Create a trail of food pheromones
-    trail_positions = [(100, 100), (150, 120), (200, 140), (250, 160), (300, 180)]
-    for pos in trail_positions:
-        pheromone_manager.add_pheromone(pos, PheromoneType.FOOD_TRAIL, 
-                                      strength=50.0, decay_rate=0.1, radius_of_influence=30.0)
-    
-    # Create ant at start of trail
-    ant = Ant(position=(80, 80), orientation=0)
+    """A follower on a food ridge heads away from the nest, toward the food."""
+    print("\nTesting pheromone ridge following...")
+
+    pheromone_manager = PheromoneManager(world_bounds=(0, 0, 800, 600), diffusion=0.0)
+    pheromone_manager.set_decay_rate(PheromoneType.FOOD_TRAIL, 0.0)
+    nest = (120.0, 300.0)
+    food = (520.0, 300.0)
+    pheromone_manager.deposit_segment(food, nest, PheromoneType.FOOD_TRAIL, 1.0)
+
+    ant = Ant(position=(160.0, 300.0), orientation=0.0)
     ant.set_pheromone_manager(pheromone_manager)
-    ant.set_state(AntState.SEARCHING)
-    
-    print(f"Created pheromone trail with {len(trail_positions)} positions")
-    print(f"Ant starting at position {ant.position}")
-    
-    # Test gradient sensing
-    for i in range(5):
-        gradient = ant.sense_pheromone_gradient(PheromoneType.FOOD_TRAIL, radius=60.0)
-        if gradient:
-            print(f"Step {i}: Ant at {ant.position}, gradient: {gradient}")
-            ant.step()
-        else:
-            print(f"Step {i}: No gradient detected at {ant.position}")
-            break
-    
-    print("✓ Pheromone gradient following test completed!")
+    ant.set_nest_position(nest)
+    ant.set_state(AntState.FOLLOWING_TRAIL)
+    ant._food_sense_offset = 8.0
+    ant._food_sensing_range = 16.0
+    ant._max_velocity = 2.0
+    ant._velocity = 2.0
+
+    direction = ant.sense_pheromone_gradient(PheromoneType.FOOD_TRAIL, radius=8.0)
+    assert direction is not None
+    assert direction[0] > 0.5
+    start_x = ant.position[0]
+    for _ in range(40):
+        ant.step()
+    assert ant.position[0] > start_x + 20.0
+    print(f"Follower moved from x={start_x:.1f} to x={ant.position[0]:.1f}")
+    print("✓ Pheromone ridge following test completed!")
 
 if __name__ == "__main__":
     test_enhanced_pheromone_system()
