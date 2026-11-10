@@ -124,6 +124,8 @@ class Colony:
         ant_position = (self._position[0] + offset_x, self._position[1] + offset_y)
         ant = Ant(position=ant_position, orientation=np.random.uniform(0, 360), caste=caste)
         ant.set_state(AntState.SEARCHING)
+        ant.set_nest_position(self._position)
+        ant.set_world_bounds(self._world_bounds)
         if self._pheromone_manager:
             ant.set_pheromone_manager(self._pheromone_manager)
         self._ants.append(ant)
@@ -203,6 +205,7 @@ class Colony:
         
         ant = Ant(position=ant_position, orientation=np.random.uniform(0, 360), caste=caste)
         ant.set_state(AntState.SEARCHING)
+        ant.set_nest_position(self._position)
         
         # Set world bounds for the new ant
         ant.set_world_bounds(self._world_bounds)
@@ -463,6 +466,7 @@ class Colony:
                 self._caste_populations[ant.caste] += 1
             if self._pheromone_manager:
                 ant.set_pheromone_manager(self._pheromone_manager)
+            ant.set_nest_position(self._position)
     
     def remove_ant(self, ant: Ant):
         """Remove an ant from the colony (for external management)."""

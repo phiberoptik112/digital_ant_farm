@@ -1,3 +1,4 @@
+import math
 import pygame
 from typing import Dict, Optional, Callable
 from entities.ant import AntCaste
@@ -69,21 +70,24 @@ class QueenControls:
         # Buttons for each caste
         self.buttons = {}
         
-        # Colony behavior parameters and sliders
+        # Colony behavior parameters and sliders.
+        # Strength is secretion q (amount per pixel). Decay is λ in 1/seconds.
+        # Trail radius is the lateral sensing offset. Diffusion replaces the
+        # old per-frame deposit pulse and the delayed blob burst.
         self.behavior_params = {
-            'pheromone_deposit_interval': 30,
-            'home_trail_strength': 20.0,
-            'food_trail_strength': 40.0,
-            'home_trail_decay': 0.3,
-            'food_trail_decay': 0.5,
-            'home_trail_radius': 15.0,
-            'food_trail_radius': 25.0,
+            'diffusion_rate': 4.0,
+            'home_trail_strength': 0.4,
+            'food_trail_strength': 1.0,
+            'home_trail_decay': math.log(2.0) / 15.0,
+            'food_trail_decay': math.log(2.0) / 20.0,
+            'home_trail_radius': 8.0,
+            'food_trail_radius': 8.0,
             'ant_max_velocity': 2.0,
             'ant_acceleration': 0.5,
             'ant_turn_speed': 3.0,
             'ant_detection_radius': 20.0,
-            'food_sensing_range': 60.0,
-            'home_sensing_range': 40.0
+            'food_sensing_range': 16.0,
+            'home_sensing_range': 16.0
         }
         
         # Create sliders for behavior parameters
@@ -95,31 +99,31 @@ class QueenControls:
     def _create_behavior_sliders(self):
         """Create sliders for behavior parameters."""
         slider_configs = [
-            ('pheromone_deposit_interval', 'Pheromone Deposit Interval', 10, 120, 1),
-            ('home_trail_strength', 'Home Trail Strength', 5.0, 100.0, 1.0),
-            ('food_trail_strength', 'Food Trail Strength', 10.0, 100.0, 1.0),
-            ('home_trail_decay', 'Home Trail Decay Rate', 0.1, 2.0, 0.1),
-            ('food_trail_decay', 'Food Trail Decay Rate', 0.1, 2.0, 0.1),
-            ('home_trail_radius', 'Home Trail Radius', 5.0, 50.0, 1.0),
-            ('food_trail_radius', 'Food Trail Radius', 10.0, 50.0, 1.0),
+            ('diffusion_rate', 'Diffusion D', 0.0, 40.0, 0.5),
+            ('home_trail_strength', 'Home q /px', 0.05, 3.0, 0.05),
+            ('food_trail_strength', 'Food q /px', 0.05, 5.0, 0.05),
+            ('home_trail_decay', 'Home lambda 1/s', 0.01, 0.20, 0.005),
+            ('food_trail_decay', 'Food lambda 1/s', 0.01, 0.20, 0.005),
+            ('home_trail_radius', 'Home sense px', 4.0, 40.0, 1.0),
+            ('food_trail_radius', 'Food sense px', 4.0, 40.0, 1.0),
             ('ant_max_velocity', 'Ant Max Velocity', 0.5, 5.0, 0.1),
             ('ant_acceleration', 'Ant Acceleration', 0.1, 2.0, 0.1),
             ('ant_turn_speed', 'Ant Turn Speed', 1.0, 10.0, 0.1),
             ('ant_detection_radius', 'Ant Detection Radius', 10.0, 50.0, 1.0),
-            ('food_sensing_range', 'Food Sensing Range', 20.0, 100.0, 1.0),
-            ('home_sensing_range', 'Home Sensing Range', 10.0, 80.0, 1.0)
+            ('food_sensing_range', 'Food look-ahead', 4.0, 48.0, 1.0),
+            ('home_sensing_range', 'Home look-ahead', 4.0, 48.0, 1.0)
         ]
         
         y_start = self.y + self.tab_height + 35  # Increased starting position to accommodate labels
         slider_height = 20
-        spacing = 35  # Increased spacing between sliders to prevent label overlap
+        spacing = 36  # Increased spacing between sliders to prevent label overlap
         
         for i, (param_name, label, min_val, max_val, step) in enumerate(slider_configs):
             y_pos = y_start + i * spacing
             slider = UISlider(
                 x=self.x + 10,
                 y=y_pos,
-                width=180,
+                width=self.width - 20,
                 height=slider_height,
                 min_val=min_val,
                 max_val=max_val,
@@ -131,10 +135,7 @@ class QueenControls:
     
     def _update_behavior_param(self, param_name: str, value: float):
         """Update a behavior parameter."""
-        if param_name == 'pheromone_deposit_interval':
-            self.behavior_params[param_name] = int(value)
-        else:
-            self.behavior_params[param_name] = value
+        self.behavior_params[param_name] = value
         
         # Apply the parameter change to the simulation
         # This will be handled by the main simulation loop

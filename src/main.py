@@ -38,7 +38,7 @@ colony.set_world_bounds((0, 0, SCREEN_WIDTH, SCREEN_HEIGHT))
 colony.receive_food(100.0)
 
 # Create queen controls UI
-queen_controls = QueenControls(x=850, y=50, width=350, height=500)
+queen_controls = QueenControls(x=850, y=50, width=350, height=660)
 
 # Nest location (for compatibility with existing ant logic)
 nest_pos = colony.position
@@ -58,8 +58,18 @@ font_large = pygame.font.Font(None, 36)
 # Time tracking for delta time calculation
 last_time = time.time()
 
-# Frame counter for pheromone deposition
-frame_count = 0
+
+def blit_pheromone_field(target, manager):
+    """Draw the concentration grids. Alpha tracks C and reaches 0."""
+    rgba = np.ascontiguousarray(manager.rasterize())
+    height, width = rgba.shape[:2]
+    if width == 0 or height == 0:
+        return
+    # surfarray rejects a 4-channel grid. frombuffer keeps the alpha channel,
+    # and copy() detaches the surface from the numpy buffer.
+    field_surface = pygame.image.frombuffer(rgba, (width, height), "RGBA").copy()
+    scaled = pygame.transform.scale(field_surface, (SCREEN_WIDTH, SCREEN_HEIGHT))
+    target.blit(scaled, (0, 0))
 
 # --- Main Loop ---
 while running:
@@ -67,7 +77,6 @@ while running:
     current_time = time.time()
     delta_time = current_time - last_time
     last_time = current_time
-    frame_count += 1
 
     # Handle events
     for event in pygame.event.get():
@@ -105,13 +114,15 @@ while running:
     # Clear screen
     screen.fill((30, 30, 30))
 
-    # Update systems
+    # Update systems. Pheromones integrate after this frame's deposits.
     food_manager.update_all(delta_time)
-    pheromone_manager.update_all()
     colony.update()
 
     # Get behavior parameters from queen controls
     behavior_params = queen_controls.get_behavior_params()
+    pheromone_manager.apply_behavior_params(behavior_params)
+    food_q = behavior_params['food_trail_strength']
+    home_q = behavior_params['home_trail_strength']
     
     # --- Ant update and interaction logic ---
     for ant in colony.get_ants():
@@ -122,13 +133,10 @@ while running:
         ant._detection_radius = behavior_params['ant_detection_radius']
         ant._food_sensing_range = behavior_params['food_sensing_range']
         ant._home_sensing_range = behavior_params['home_sensing_range']
-        
-        # Deposit exploration pheromones periodically while searching
-        if ant.state == AntState.SEARCHING and frame_count % int(behavior_params['pheromone_deposit_interval']) == 0:
-            ant.deposit_pheromone(PheromoneType.HOME_TRAIL, 
-                                strength=behavior_params['home_trail_strength'], 
-                                decay_rate=behavior_params['home_trail_decay'], 
-                                radius_of_influence=behavior_params['home_trail_radius'])
+        ant._food_sense_offset = behavior_params['food_trail_radius']
+        ant._home_sense_offset = behavior_params['home_trail_radius']
+        ant.set_nest_position(colony.position)
+        previous_position = ant.position
 
         # Check for food collision (static food sources)
         if ant.state == AntState.SEARCHING and not ant.carrying_food:
@@ -176,9 +184,10 @@ while running:
                 ant.set_state(AntState.SEARCHING)
                 continue
 
-        # Update ant behavior
+        # Move, then secrete along the segment that was just traveled.
+        # Searching ants lay home pheromone continuously. Returning ants and
+        # ants already on a food trail lay food pheromone, so traffic reinforces it.
         if ant.state == AntState.RETURNING:
-            # Move towards nest and deposit food trail pheromones
             nest_dir = (colony.position[0] - ant.position[0], colony.position[1] - ant.position[1])
             nest_dist = np.sqrt(nest_dir[0]**2 + nest_dir[1]**2)
             if nest_dist > 0:
@@ -186,13 +195,20 @@ while running:
                 ant.turn_towards(nest_angle)
                 ant.accelerate(ant._max_velocity)
                 ant.move(ant._velocity)
-            # Deposit food trail pheromones
-            ant.deposit_pheromone(PheromoneType.FOOD_TRAIL, 
-                                strength=behavior_params['food_trail_strength'], 
-                                decay_rate=behavior_params['food_trail_decay'], 
-                                radius_of_influence=behavior_params['food_trail_radius'])
+            ant.deposit_along_path(previous_position, ant.position, PheromoneType.FOOD_TRAIL, food_q)
+        elif ant.state == AntState.FOLLOWING_TRAIL:
+            ant.step()
+            ant.deposit_along_path(previous_position, ant.position, PheromoneType.FOOD_TRAIL, food_q)
+        elif ant.state == AntState.SEARCHING:
+            ant.step()
+            if ant.state == AntState.FOLLOWING_TRAIL:
+                ant.deposit_along_path(previous_position, ant.position, PheromoneType.FOOD_TRAIL, food_q)
+            else:
+                ant.deposit_along_path(previous_position, ant.position, PheromoneType.HOME_TRAIL, home_q)
         else:
             ant.step()
+
+    pheromone_manager.update_all(delta_time)
 
     # --- Rendering ---
 
@@ -227,27 +243,7 @@ while running:
                     text_rect = timer_text.get_rect(center=(x, y - radius - 15))
                     screen.blit(timer_text, text_rect)
 
-    # Enhanced pheromone rendering (gradient, per-pixel alpha)
-    for pheromone in pheromone_manager._pheromones:
-        x, y = int(pheromone.position[0]), int(pheromone.position[1])
-        alpha = max(20, min(255, int(pheromone.strength * 3)))
-        radius = int(pheromone.radius_of_influence)
-        # Use dynamic color for FOOD_TRAIL, static for others
-        if pheromone.type == PheromoneType.FOOD_TRAIL:
-            base_color = pheromone.color  # (R, G, B) from pheromone property
-            color = (*base_color, alpha)
-        elif pheromone.type == PheromoneType.HOME_TRAIL:
-            color = (100, 200, 255, alpha)  # Light blue for exploration trails
-        else:
-            color = (255, 100, 100, alpha)  # Red for danger
-        # Create surface with per-pixel alpha
-        s = pygame.Surface((radius * 2, radius * 2), pygame.SRCALPHA)
-        # Draw gradient circle for more realistic pheromone appearance
-        for r in range(radius, 0, -2):
-            gradient_alpha = int(alpha * (r / radius) * 0.7)
-            gradient_color = (*color[:3], gradient_alpha)
-            pygame.draw.circle(s, gradient_color, (radius, radius), r)
-        screen.blit(s, (x - radius, y - radius))
+    blit_pheromone_field(screen, pheromone_manager)
 
     # Draw colony
     colony_x, colony_y = int(colony.position[0]), int(colony.position[1])
@@ -270,6 +266,7 @@ while running:
 
     # Display colony statistics
     stats = colony.get_statistics()
+    pheromone_stats = pheromone_manager.get_statistics()
     text_lines = [
         f"Population: {stats['population']}/{stats['max_population']}",
         f"Food: {stats['food_storage']:.1f}/{stats['max_food_storage']:.1f}",
@@ -283,7 +280,8 @@ while running:
         f"Nurses: {stats['caste_populations'].get(AntCaste.NURSE, 0)}",
         "",
         f"Food Sources: {len(food_manager._food_sources) + len(food_sources)}",
-        f"Pheromones: {len(pheromone_manager._pheromones)}",
+        f"Pheromone mass: {pheromone_stats['total_strength']:.1f}",
+        f"Active cells: {pheromone_stats['total_pheromones']}",
         f"FPS: {clock.get_fps():.1f}"
     ]
     

@@ -13,36 +13,38 @@ Successfully implemented a comprehensive colony behavior tuning UI that exposes 
 
 ### 🔧 Behavior Parameters Exposed
 
-The system exposes **13 key behavior parameters** that control various aspects of colony behavior:
+The system exposes **13 key behavior parameters** that control various aspects of colony behavior.
+
+Pheromone sliders drive the concentration field ∂C/∂t = S + D∇²C − λC. Secretion is continuous per pixel traveled, so there is no shared deposit-interval pulse and no delayed 8-blob spread.
 
 #### Pheromone System Parameters
-1. **Pheromone Deposit Interval** (10-120 frames)
-   - Controls how often ants deposit pheromones while exploring
-   - Default: 30 frames
+1. **Diffusion D** (0-40 px²/s)
+   - How fast existing chemical spreads into neighboring cells
+   - Default: 4
 
-2. **Home Trail Strength** (5.0-100.0)
-   - Strength of exploration trail pheromones
-   - Default: 20.0
+2. **Home q /px** (0.05-3.0)
+   - Home pheromone secreted per pixel while searching
+   - Default: 0.4
 
-3. **Food Trail Strength** (10.0-100.0)
-   - Strength of food trail pheromones
-   - Default: 40.0
+3. **Food q /px** (0.05-5.0)
+   - Food pheromone secreted per pixel while returning or following
+   - Default: 1.0
 
-4. **Home Trail Decay Rate** (0.1-2.0)
-   - How quickly exploration trails fade
-   - Default: 0.3
+4. **Home lambda** (0.01-0.20 1/s)
+   - Exponential evaporation rate for exploration trails. Half-life is ln(2)/λ
+   - Default: ln(2)/15 (about 15 s)
 
-5. **Food Trail Decay Rate** (0.1-2.0)
-   - How quickly food trails fade
-   - Default: 0.5
+5. **Food lambda** (0.01-0.20 1/s)
+   - Exponential evaporation rate for food trails
+   - Default: ln(2)/20 (about 20 s)
 
-6. **Home Trail Radius** (5.0-50.0)
-   - Radius of influence for exploration trails
-   - Default: 15.0
+6. **Home sense px** (4-40)
+   - Lateral sample distance for the home-field repeller
+   - Default: 8
 
-7. **Food Trail Radius** (10.0-50.0)
-   - Radius of influence for food trails
-   - Default: 25.0
+7. **Food sense px** (4-40)
+   - Lateral sample distance used to stay on a food ridge
+   - Default: 8
 
 #### Ant Movement Parameters
 8. **Ant Max Velocity** (0.5-5.0)
@@ -62,13 +64,13 @@ The system exposes **13 key behavior parameters** that control various aspects o
     - Default: 20.0
 
 #### Pheromone Sensing Parameters
-12. **Food Sensing Range** (20.0-100.0)
-    - Distance ants can detect food trail pheromones
-    - Default: 60.0
+12. **Food look-ahead** (4-48 px)
+    - Forward sample distance along the outbound heading
+    - Default: 16
 
-13. **Home Sensing Range** (10.0-80.0)
-    - Distance ants can detect home trail pheromones
-    - Default: 40.0
+13. **Home look-ahead** (4-48 px)
+    - Forward sample distance for home-trail sensing
+    - Default: 16
 
 ## Implementation Details
 
